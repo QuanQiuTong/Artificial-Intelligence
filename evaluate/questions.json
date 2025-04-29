@@ -1,0 +1,29 @@
+{"question_id": 101, "category": "computer_history", "turns": ["冯·诺依曼架构的主要特点是什么？它与现代计算机架构有何关联？"]}
+{"question_id": 102, "category": "discrete_math", "turns": ["以下哪个不是NP完全问题？\nA. 旅行商问题 (TSP)\nB. 3-SAT问题\nC. 最短路径问题\nD. 顶点覆盖问题"], "reference": ["C. 最短路径问题"]}
+{"question_id": 103, "category": "programming", "turns": ["请设计一个Python类实现红黑树数据结构，需包含插入、删除和搜索操作。说明你的实现如何保持红黑树的平衡性质。"]}
+{"question_id": 104, "category": "artificial_intelligence", "turns": ["假设你是一位人工智能伦理专家，请分析大型语言模型在医疗诊断领域应用的潜在风险和伦理挑战，并提出相应的解决方案。"]}
+{"question_id": 105, "category": "computer_systems", "turns": ["分布式系统中的CAP定理表明系统不能同时满足一致性、可用性和分区容错性。评估这一理论在现代云计算架构中的应用，并讨论如何在实际系统设计中做出权衡。"]}
+
+{"question_id": 201, "category": "anatomy", "turns": ["请详细描述心脏的四个腔室及其在血液循环中的作用。"]}
+{"question_id": 202, "category": "pharmacology", "turns": ["以下哪种药物不属于β-受体阻滞剂？\nA. 普萘洛尔(Propranolol)\nB. 阿替洛尔(Atenolol)\nC. 氯沙坦(Losartan)\nD. 美托洛尔(Metoprolol)"], "reference": ["C. 氯沙坦(Losartan)"]}
+{"question_id": 203, "category": "pathology", "turns": ["请分析一个57岁男性患者的肝功能检查结果：ALT 78 U/L, AST 92 U/L, 总胆红素 3.2 mg/dL, 直接胆红素 1.8 mg/dL。结合这些数据，讨论可能的诊断和需要进一步检查的项目。"]}
+{"question_id": 204, "category": "clinical_diagnosis", "turns": ["请作为一名急诊科医生，处理以下情况：一名35岁女性患者出现胸痛、呼吸急促和左臂疼痛。她有高血压和家族性心脏病史。请提供你的初步诊断思路和立即需要采取的措施。"]}
+{"question_id": 205, "category": "medical_ethics", "turns": ["在有限的医疗资源条件下，如何公正地分配器官移植资源？请讨论年龄、生活方式、社会贡献等因素在决策过程中应该扮演的角色。"]}
+
+{"question_id": 301, "category": "classical_mechanics", "turns": ["解释角动量守恒定律，并描述它在物理系统中的应用实例。"]}
+{"question_id": 302, "category": "quantum_physics", "turns": ["在量子力学中，以下哪个表述是正确的？\nA. 测量前电子同时具有确定的位置和动量\nB. 薛定谔方程描述的是粒子的确定轨迹\nC. 量子隧穿效应允许粒子穿过经典力学禁止的势垒\nD. 玻尔模型完全解释了所有原子光谱"], "reference": ["C. 量子隧穿效应允许粒子穿过经典力学禁止的势垒"]}
+{"question_id": 303, "category": "thermodynamics", "turns": ["计算一个卡诺热机在热源温度为400K，冷源温度为300K时的最大效率。然后，解释为什么实际热机无法达到这个理论效率，并分析提高效率的可能方法。"], "reference": ["最大效率 = 1 - 300/400 = 0.25 或 25%"]}
+{"question_id": 304, "category": "electromagnetism", "turns": ["假设你是一位物理学教授，正在向非专业学生解释电磁波的本质。请通过日常生活中的例子，解释电场和磁场如何相互作用形成电磁波，以及这如何解释无线通信的工作原理。"]}
+{"question_id": 305, "category": "relativity", "turns": ["爱因斯坦的广义相对论将引力描述为时空弯曲。分析这一理论如何改变了我们对宇宙的理解，并讨论它与量子力学的不相容性带来的挑战。"]}
+
+{"question_id": 401, "category": "constitutional_law", "turns": ["三权分立制度的基本原则是什么？请分析其如何在现代民主制度中发挥制衡作用。"]}
+{"question_id": 402, "category": "civil_law", "turns": ["在合同法中，以下哪种情况不构成合同的有效要约？\nA. 明确表达订立合同的意思\nB. 内容具体确定\nC. 表明经受要约人承诺即受约束\nD. 口头提出但未明确说明是要约"], "reference": ["D. 口头提出但未明确说明是要约"]}
+{"question_id": 403, "category": "criminal_law", "turns": ["请分析以下案例并给出法律意见：甲在醉酒状态下驾车，撞伤路人乙导致重伤。甲下车后，见乙受伤严重，害怕承担责任而驾车逃离现场。后经鉴定，乙因得不到及时救助而死亡。请分析甲可能承担的刑事责任。"]}
+{"question_id": 404, "category": "international_law", "turns": ["请作为一名国际法专家，评估一个国家以'人道主义干预'为由，未经联合国安理会授权，对另一主权国家采取军事行动的合法性。请引用相关国际法律文书和先例支持你的分析。"]}
+{"question_id": 405, "category": "intellectual_property", "turns": ["人工智能生成的作品是否应当受到版权保护？请分析现有知识产权法律框架在处理AI创作作品时面临的挑战，并提出可能的法律改革方向。"]}
+
+{"question_id": 501, "category": "investment_theory", "turns": ["现代投资组合理论的核心原则是什么？请解释分散投资如何帮助降低投资组合的系统性风险。"]}
+{"question_id": 502, "category": "financial_analysis", "turns": ["在计算公司的加权平均资本成本(WACC)时，下列哪项陈述是正确的？\nA. 债务成本应使用税前成本\nB. 优先股不计入WACC的计算\nC. 权益成本通常低于债务成本\nD. 应使用债务的税后成本"], "reference": ["D. 应使用债务的税后成本"]}
+{"question_id": 503, "category": "risk_management", "turns": ["为一家中型制造企业设计一个全面的外汇风险管理策略。该公司从欧洲进口原材料，并向亚洲市场出口成品。请详细说明如何识别风险敞口，以及可采用的对冲工具和策略。"]}
+{"question_id": 504, "category": "corporate_finance", "turns": ["作为一家科技初创公司的财务顾问，请就该公司即将进行的A轮融资给出建议。公司已有原型产品但尚未盈利，寻求500万美元融资以扩大市场份额。请分析适合的融资结构、估值方法，以及与潜在投资者谈判的策略。"]}
+{"question_id": 505, "category": "economics", "turns": ["近年来全球央行普遍采取量化宽松政策应对经济危机。请评估这些政策的有效性、潜在风险，以及对全球经济不平等的影响。"]}

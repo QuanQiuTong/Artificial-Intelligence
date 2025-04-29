@@ -1,0 +1,25 @@
+{"question_id": 101, "category": "computer_history", "question_type": "factual", "turns": ["冯·诺依曼架构的主要特点是什么？它与现代计算机架构有何关联？"]}
+{"question_id": 102, "category": "computer_history", "question_type": "multiple_choice", "turns": ["以下哪位不是关系型数据库理论的主要贡献者？\nA. Edgar F. Codd\nB. Peter Chen\nC. James Gosling\nD. Charles Bachman"], "reference": ["C. James Gosling"]}
+{"question_id": 103, "category": "computer_history", "question_type": "instruction", "turns": ["请扮演一位计算机历史学家，撰写一篇关于个人计算机发展史上三个最重要转折点的短文。包括这些转折点的技术背景、市场影响和历史意义。"]}
+{"question_id": 104, "category": "computer_history", "question_type": "factual", "turns": ["UNIX操作系统的发展历史是怎样的？它对现代操作系统有何影响？"]}
+{"question_id": 105, "category": "computer_history", "question_type": "multiple_choice", "turns": ["哪一项不是TCP/IP协议族的核心协议？\nA. TCP\nB. IP\nC. HTTP\nD. ICMP"], "reference": ["C. HTTP"]}
+{"question_id": 201, "category": "discrete_math", "question_type": "multiple_choice", "turns": ["以下哪个不是NP完全问题？\nA. 旅行商问题 (TSP)\nB. 3-SAT问题\nC. 最短路径问题\nD. 顶点覆盖问题"], "reference": ["C. 最短路径问题"]}
+{"question_id": 202, "category": "discrete_math", "question_type": "factual", "turns": ["请解释图论中的欧拉路径和哈密顿路径的区别，并给出它们各自的应用场景。"]}
+{"question_id": 203, "category": "discrete_math", "question_type": "instruction", "turns": ["证明任意图的顶点数为奇数，则必然存在度数为偶数的顶点。"]}
+{"question_id": 204, "category": "discrete_math", "question_type": "multiple_choice", "turns": ["以下哪个逻辑表达式等价于 ¬(P → Q)？\nA. ¬P → ¬Q\nB. P ∧ ¬Q\nC. ¬P ∨ Q\nD. P → ¬Q"], "reference": ["B. P ∧ ¬Q"]}
+{"question_id": 205, "category": "discrete_math", "question_type": "factual", "turns": ["解释什么是有限状态自动机，并描述它在编译器设计中的应用。"]}
+{"question_id": 301, "category": "programming", "question_type": "instruction", "turns": ["设计一个Python类实现红黑树数据结构，需包含插入、删除和搜索操作。说明你的实现如何保持红黑树的平衡性质。"]}
+{"question_id": 302, "category": "programming", "question_type": "factual", "turns": ["解释什么是函数式编程，并与面向对象编程进行比较。列举至少三种函数式编程语言及其特点。"]}
+{"question_id": 303, "category": "programming", "question_type": "multiple_choice", "turns": ["以下哪个排序算法在最坏情况下的时间复杂度不是O(n²)？\nA. 冒泡排序\nB. 插入排序\nC. 快速排序\nD. 归并排序"], "reference": ["D. 归并排序"]}
+{"question_id": 304, "category": "programming", "question_type": "instruction", "turns": ["实现一个LRU（最近最少使用）缓存机制，需要支持get和put操作，并且操作的时间复杂度为O(1)。"]}
+{"question_id": 305, "category": "programming", "question_type": "multiple_choice", "turns": ["在Java中，以下哪个不是合法的访问修饰符？\nA. public\nB. private\nC. protected\nD. hidden"], "reference": ["D. hidden"]}
+{"question_id": 401, "category": "artificial_intelligence", "question_type": "factual", "turns": ["解释神经网络中的反向传播算法原理，以及它如何更新网络权重。"]}
+{"question_id": 402, "category": "artificial_intelligence", "question_type": "instruction", "turns": ["假设你是一位人工智能伦理专家，请分析大型语言模型在医疗诊断领域应用的潜在风险和伦理挑战，并提出相应的解决方案。"]}
+{"question_id": 403, "category": "artificial_intelligence", "question_type": "multiple_choice", "turns": ["以下哪种算法不属于监督学习？\nA. 线性回归\nB. 决策树\nC. K-means聚类\nD. 支持向量机"], "reference": ["C. K-means聚类"]}
+{"question_id": 404, "category": "artificial_intelligence", "question_type": "instruction", "turns": ["设计一个基于强化学习的算法，帮助自动驾驶汽车在复杂城市环境中学习最优路径规划。描述你的算法框架、奖励函数设计和潜在挑战。"]}
+{"question_id": 405, "category": "artificial_intelligence", "question_type": "multiple_choice", "turns": ["在大型语言模型中，以下哪项不是Transformer架构的关键组件？\nA. 自注意力机制\nB. 卷积层\nC. 前馈神经网络\nD. 位置编码"], "reference": ["B. 卷积层"]}
+{"question_id": 501, "category": "computer_systems", "question_type": "factual", "turns": ["解释计算机系统中的缓存一致性问题，以及常见的解决方案。"]}
+{"question_id": 502, "category": "computer_systems", "question_type": "multiple_choice", "turns": ["以下哪种页面置换算法不会出现Belady异常？\nA. FIFO\nB. LRU\nC. Random\nD. Optimal"], "reference": ["B. LRU"]}
+{"question_id": 503, "category": "computer_systems", "question_type": "instruction", "turns": ["设计一个分布式系统中的共识算法，能够在部分节点发生故障的情况下保持系统的一致性。详细说明算法的工作原理和容错能力。"]}
+{"question_id": 504, "category": "computer_systems", "question_type": "factual", "turns": ["分布式系统中的CAP定理表明系统不能同时满足一致性、可用性和分区容错性。评估这一理论在现代云计算架构中的应用，并讨论如何在实际系统设计中做出权衡。"]}
+{"question_id": 505, "category": "computer_systems", "question_type": "multiple_choice", "turns": ["下列哪项不是虚拟内存的主要功能？\nA. 提供内存保护\nB. 消除外部碎片\nC. 实现程序的并行执行\nD. 增加CPU缓存命中率"], "reference": ["D. 增加CPU缓存命中率"]}

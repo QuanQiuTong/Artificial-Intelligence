@@ -1,0 +1,47 @@
+[
+    {
+        "name": "knowledge-v1",
+        "type": "single",
+        "system_prompt": "You are an expert evaluator with deep domain knowledge.",
+        "prompt_template": "[Instruction]\nYou are evaluating the response to a factual knowledge question. Please assess the accuracy, completeness, and clarity of the answer. Consider whether all key facts are correctly presented, whether the answer addresses all aspects of the question, and whether the explanation is clear and well-structured. After your evaluation, rate the response on a scale of 1-10 by providing your rating in this format: [[rating]].\n\n[Question]\n{question}\n\n[The Start of Assistant's Answer]\n{answer}\n[The End of Assistant's Answer]",
+        "description": "Prompt for evaluating factual knowledge questions",
+        "category": "knowledge",
+        "output_format": "[[rating]]"
+    },
+    {
+        "name": "multiple-choice-v1",
+        "type": "single",
+        "system_prompt": "You are an objective evaluator for multiple-choice questions.",
+        "prompt_template": "[Instruction]\nPlease evaluate the assistant's response to this multiple-choice question. First, determine if the assistant selected the correct answer option. Then, assess the quality of explanation provided. A good response should clearly identify the correct option and provide accurate reasoning for why that option is correct and why others are incorrect. After your evaluation, rate the response on a scale of 1-10 by providing your rating in this format: [[rating]].\n\n[Question]\n{question}\n\n[The Start of Assistant's Answer]\n{answer}\n[The End of Assistant's Answer]\n\n[The Correct Answer]\n{correct_answer}",
+        "description": "Prompt for evaluating multiple-choice questions",
+        "category": "multiple_choice",
+        "output_format": "[[rating]]"
+    },
+    {
+        "name": "instruction-v1",
+        "type": "single",
+        "system_prompt": "You are an expert evaluator assessing how well instructions were followed.",
+        "prompt_template": "[Instruction]\nPlease evaluate how well the assistant followed the given instructions. Consider whether all requirements were addressed, the quality and correctness of the work produced, and whether the response demonstrates appropriate expertise in the subject matter. After your evaluation, rate the response on a scale of 1-10 by providing your rating in this format: [[rating]].\n\n[Question]\n{question}\n\n[The Start of Assistant's Answer]\n{answer}\n[The End of Assistant's Answer]",
+        "description": "Prompt for evaluating instruction-following",
+        "category": "instruction",
+        "output_format": "[[rating]]"
+    },
+    {
+        "name": "roleplay-v1",
+        "type": "single",
+        "system_prompt": "You are evaluating the quality of role-playing by an AI assistant.",
+        "prompt_template": "[Instruction]\nPlease evaluate how effectively the assistant adopted the requested role or perspective. Consider whether the response demonstrates appropriate domain knowledge for the assigned role, maintains the correct perspective throughout, and provides insights that would be expected from a genuine expert in that role. After your evaluation, rate the response on a scale of 1-10 by providing your rating in this format: [[rating]].\n\n[Question]\n{question}\n\n[The Start of Assistant's Answer]\n{answer}\n[The End of Assistant's Answer]",
+        "description": "Prompt for evaluating role-playing responses",
+        "category": "roleplay",
+        "output_format": "[[rating]]"
+    },
+    {
+        "name": "open-ended-v1",
+        "type": "single",
+        "system_prompt": "You are evaluating the quality of responses to complex open-ended questions.",
+        "prompt_template": "[Instruction]\nPlease evaluate the response to this open-ended question. Consider the depth of analysis, balance of perspectives, quality of reasoning, and creativity of insights. A good response should demonstrate nuanced understanding of the topic, consider multiple viewpoints, provide well-reasoned arguments, and offer original insights. After your evaluation, rate the response on a scale of 1-10 by providing your rating in this format: [[rating]].\n\n[Question]\n{question}\n\n[The Start of Assistant's Answer]\n{answer}\n[The End of Assistant's Answer]",
+        "description": "Prompt for evaluating open-ended responses",
+        "category": "open_ended",
+        "output_format": "[[rating]]"
+    }
+]
