@@ -1,0 +1,9 @@
+pandas
+requests
+Pillow
+numpy
+matplotlib
+torch
+torchvision
+tqdm
+torchsummary

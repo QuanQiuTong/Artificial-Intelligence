@@ -1,0 +1,158 @@
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude2.py
+__name__: __main__
+数据集目录：./dataset
+mchar_train.zip          http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_train.zip
+mchar_train.json         http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_train.json
+mchar_val.zip    http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_val.zip
+mchar_val.json   http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_val.json
+mchar_test_a.zip         http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_test_a.zip
+mchar_sample_submit_A.csv        http://tianchi-competition.oss-cn-hangzhou.aliyuncs.com/531795/mchar_sample_submit_A.csv
+train image counts: 30000
+val image counts: 10000
+test image counts: 40000
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:227: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  warnings.warn(
+loss: 5.510, acc: 6.603, lr: 0.000186: 100%|█████████████████████████████████████████| 625/625 [03:58<00:00,  2.63it/s]
+Start Evaluation
+Val Acc: 74.01: 100%|████████████████████████████████████████████████████████████████| 209/209 [00:55<00:00,  3.78it/s]
+Validation accuracy: 0.2475
+./checkpoints2\epoch-efficientnet_b3-1-acc-24.75.pth saved successfully...
+Epoch 2/25
+loss: 4.259, acc: 46.407, lr: 0.000454: 100%|████████████████████████████████████████| 625/625 [03:38<00:00,  2.85it/s]
+Start Evaluation
+Val Acc: 167.25: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:25<00:00,  8.30it/s]
+Validation accuracy: 0.5593
+./checkpoints2\epoch-efficientnet_b3-2-acc-55.93.pth saved successfully...
+Epoch 3/25
+loss: 3.783, acc: 63.507, lr: 0.000499: 100%|████████████████████████████████████████| 625/625 [03:33<00:00,  2.92it/s]
+Start Evaluation
+Val Acc: 176.64: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.18it/s]
+Validation accuracy: 0.5907
+./checkpoints2\epoch-efficientnet_b3-3-acc-59.07.pth saved successfully...
+Epoch 4/25
+loss: 3.517, acc: 71.323, lr: 0.000495: 100%|████████████████████████████████████████| 625/625 [03:35<00:00,  2.90it/s]
+Start Evaluation
+Val Acc: 205.80: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.06it/s]
+Validation accuracy: 0.6882
+./checkpoints2\epoch-efficientnet_b3-4-acc-68.82.pth saved successfully...
+Epoch 5/25
+loss: 3.747, acc: 74.807, lr: 0.000485: 100%|████████████████████████████████████████| 625/625 [03:33<00:00,  2.93it/s]
+Start Evaluation
+Val Acc: 206.94: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:25<00:00,  8.26it/s]
+Validation accuracy: 0.6920
+./checkpoints2\epoch-efficientnet_b3-5-acc-69.20.pth saved successfully...
+Epoch 6/25
+loss: 3.905, acc: 76.557, lr: 0.000471: 100%|████████████████████████████████████████| 625/625 [03:35<00:00,  2.90it/s]
+Start Evaluation
+Val Acc: 208.19: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.20it/s]
+Validation accuracy: 0.6962
+./checkpoints2\epoch-efficientnet_b3-6-acc-69.62.pth saved successfully...
+Epoch 7/25
+loss: 3.397, acc: 79.057, lr: 0.000452: 100%|████████████████████████████████████████| 625/625 [03:30<00:00,  2.96it/s]
+Start Evaluation
+Val Acc: 216.78: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.06it/s]
+Validation accuracy: 0.7249
+./checkpoints2\epoch-efficientnet_b3-7-acc-72.49.pth saved successfully...
+Epoch 8/25
+loss: 3.547, acc: 81.397, lr: 0.000430: 100%|████████████████████████████████████████| 625/625 [03:33<00:00,  2.92it/s]
+Start Evaluation
+Val Acc: 214.89: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:25<00:00,  8.33it/s]
+Validation accuracy: 0.7186
+Epoch 9/25
+loss: 3.375, acc: 82.143, lr: 0.000404: 100%|████████████████████████████████████████| 625/625 [03:34<00:00,  2.91it/s]
+Start Evaluation
+Val Acc: 217.85: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.19it/s]
+Validation accuracy: 0.7285
+./checkpoints2\epoch-efficientnet_b3-9-acc-72.85.pth saved successfully...
+Epoch 10/25
+loss: 3.047, acc: 82.790, lr: 0.000375: 100%|████████████████████████████████████████| 625/625 [03:30<00:00,  2.97it/s]
+Start Evaluation
+Val Acc: 219.80: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.13it/s]
+Validation accuracy: 0.7350
+./checkpoints2\epoch-efficientnet_b3-10-acc-73.50.pth saved successfully...
+Epoch 11/25
+loss: 3.355, acc: 81.847, lr: 0.000344: 100%|████████████████████████████████████████| 625/625 [03:32<00:00,  2.94it/s]
+Start Evaluation
+Val Acc: 214.20: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:24<00:00,  8.42it/s]
+Validation accuracy: 0.7163
+Epoch 12/25
+loss: 3.117, acc: 82.980, lr: 0.000310: 100%|████████████████████████████████████████| 625/625 [03:35<00:00,  2.90it/s]
+Start Evaluation
+Val Acc: 216.87: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.11it/s]
+Validation accuracy: 0.7252
+Epoch 13/25
+loss: 2.992, acc: 84.930, lr: 0.000276: 100%|████████████████████████████████████████| 625/625 [03:26<00:00,  3.02it/s]
+Start Evaluation
+Val Acc: 218.42: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.08it/s]
+Validation accuracy: 0.7304
+Epoch 14/25
+loss: 3.000, acc: 86.653, lr: 0.000241: 100%|████████████████████████████████████████| 625/625 [03:33<00:00,  2.92it/s]
+Start Evaluation
+Val Acc: 222.79: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:24<00:00,  8.47it/s]
+Validation accuracy: 0.7450
+./checkpoints2\epoch-efficientnet_b3-14-acc-74.50.pth saved successfully...
+Epoch 15/25
+loss: 2.931, acc: 89.147, lr: 0.000207: 100%|████████████████████████████████████████| 625/625 [03:35<00:00,  2.90it/s]
+Start Evaluation
+Val Acc: 224.97: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.18it/s]
+Validation accuracy: 0.7523
+./checkpoints2\epoch-efficientnet_b3-15-acc-75.23.pth saved successfully...
+Epoch 16/25
+loss: 2.964, acc: 88.950, lr: 0.000173: 100%|████████████████████████████████████████| 625/625 [03:28<00:00,  2.99it/s]
+Start Evaluation
+Val Acc: 222.64: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.05it/s]
+Validation accuracy: 0.7445
+Epoch 17/25
+loss: 3.422, acc: 89.717, lr: 0.000140: 100%|████████████████████████████████████████| 625/625 [03:33<00:00,  2.92it/s]
+Start Evaluation
+Val Acc: 221.95: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:25<00:00,  8.32it/s]
+Validation accuracy: 0.7422
+Epoch 18/25
+loss: 3.085, acc: 90.807, lr: 0.000110: 100%|████████████████████████████████████████| 625/625 [03:13<00:00,  3.24it/s]
+Start Evaluation
+Val Acc: 225.45: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:25<00:00,  8.32it/s]
+Validation accuracy: 0.7539
+./checkpoints2\epoch-efficientnet_b3-18-acc-75.39.pth saved successfully...
+Epoch 19/25
+loss: 3.032, acc: 91.740, lr: 0.000083: 100%|████████████████████████████████████████| 625/625 [03:49<00:00,  2.72it/s]
+Start Evaluation
+Val Acc: 224.04: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:51<00:00,  4.05it/s]
+Validation accuracy: 0.7492
+Epoch 20/25
+loss: 2.998, acc: 92.637, lr: 0.000058: 100%|████████████████████████████████████████| 625/625 [03:30<00:00,  2.97it/s]
+Start Evaluation
+Val Acc: 224.31: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:32<00:00,  6.51it/s]
+Validation accuracy: 0.7501
+Epoch 21/25
+loss: 2.873, acc: 93.000, lr: 0.000038: 100%|████████████████████████████████████████| 625/625 [04:24<00:00,  2.37it/s]
+Start Evaluation
+Val Acc: 225.96: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:30<00:00,  6.95it/s]
+Validation accuracy: 0.7556
+./checkpoints2\epoch-efficientnet_b3-21-acc-75.56.pth saved successfully...
+Epoch 22/25
+loss: 2.818, acc: 93.390, lr: 0.000022: 100%|████████████████████████████████████████| 625/625 [04:28<00:00,  2.33it/s]
+Start Evaluation
+Val Acc: 226.17: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:29<00:00,  7.16it/s]
+Validation accuracy: 0.7563
+./checkpoints2\epoch-efficientnet_b3-22-acc-75.63.pth saved successfully...
+Epoch 23/25
+loss: 2.903, acc: 93.777, lr: 0.000010: 100%|████████████████████████████████████████| 625/625 [03:36<00:00,  2.89it/s]
+Start Evaluation
+Val Acc: 225.00: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:22<00:00,  9.19it/s]
+Validation accuracy: 0.7524
+Epoch 24/25
+loss: 2.757, acc: 93.497, lr: 0.000002: 100%|████████████████████████████████████████| 625/625 [02:25<00:00,  4.28it/s]
+Start Evaluation
+Val Acc: 225.36: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:20<00:00, 10.36it/s]
+Validation accuracy: 0.7536
+Epoch 25/25
+loss: 2.846, acc: 93.690, lr: 0.000000: 100%|████████████████████████████████████████| 625/625 [05:50<00:00,  1.78it/s]
+Start Evaluation
+Val Acc: 225.15: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:19<00:00, 10.85it/s]
+Validation accuracy: 0.7529
+Val Acc: 225.15: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:19<00:00, 10.79it/s]
+Local validation accuracy: 75.29%
+Load model from ./checkpoints2\epoch-efficientnet_b3-22-acc-75.63.pth successfully
+100%|████████████████████████████████████████████████████████████████████████████████| 834/834 [01:53<00:00,  7.34it/s]
+Results saved to claude2_result.csv

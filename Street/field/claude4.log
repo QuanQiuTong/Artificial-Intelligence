@@ -1,0 +1,156 @@
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude4.py
+__name__: __main__
+D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:62: UserWarning: The verbose parameter is deprecated. Please use get_last_lr() to access the learning rate.
+  warnings.warn(
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:227: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  warnings.warn(
+loss: 5.181, acc: 7.477, lr: 0.000186: 100%|█████████████████████████████████████████| 625/625 [02:54<00:00,  3.58it/s]
+Start Evaluation
+Val Acc: 80.50: 100%|████████████████████████████████████████████████████████████████| 209/209 [00:40<00:00,  5.11it/s]
+Validation accuracy: 0.2692
+./checkpoints4\epoch-efficientnet_b3-1-acc-26.92.pth saved successfully...
+Epoch 2/25
+loss: 4.305, acc: 40.232, lr: 0.000346:  54%|█████████████████████▌                  | 337/625 [01:19<01:07,  4.26it/s]
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\claude4.py", line 544, in <module>
+  File "D:\Projects\AI\Street\claude4.py", line 352, in train
+  File "D:\Projects\AI\Street\claude4.py", line 399, in train_epoch
+    # 正确的顺序：先优化器步骤，再学习率调度
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\amp\grad_scaler.py", line 457, in step
+    retval = self._maybe_opt_step(optimizer, optimizer_state, *args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\amp\grad_scaler.py", line 351, in _maybe_opt_step
+    if not sum(v.item() for v in optimizer_state["found_inf_per_device"].values()):
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\amp\grad_scaler.py", line 351, in <genexpr>
+    if not sum(v.item() for v in optimizer_state["found_inf_per_device"].values()):
+               ~~~~~~^^
+KeyboardInterrupt
+Exception ignored in atexit callback <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x00000240FFDB71A0>:
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1612, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\popen_spawn_win32.py", line 114, in wait
+    res = _winapi.WaitForSingleObject(int(self._handle), msecs)
+KeyboardInterrupt:
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude4.py
+__name__: __main__
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:227: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  warnings.warn(
+loss: 5.788, acc: 4.630, lr: 0.000131:  80%|████████████████████████████████▋        | 499/625 [02:31<00:38,  3.29it/s]
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\claude4.py", line 527, in <module>
+  File "D:\Projects\AI\Street\claude4.py", line 335, in train
+    train_acc = self.train_epoch(epoch)
+  File "D:\Projects\AI\Street\claude4.py", line 367, in train_epoch
+    with t.amp.autocast('cuda'):
+               ^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\claude4.py", line 201, in forward
+    feat = self.backbone(img)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\timm\models\efficientnet.py", line 268, in forward
+    x = self.forward_features(x)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\timm\models\efficientnet.py", line 256, in forward_features
+    x = self.blocks(x)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\container.py", line 250, in forward
+    input = module(input)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\container.py", line 250, in forward
+    input = module(input)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\timm\models\_efficientnet_blocks.py", line 286, in forward
+    x = self.conv_pw(x)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\conv.py", line 554, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\nn\modules\conv.py", line 549, in _conv_forward
+    return F.conv2d(
+           ~~~~~~~~^
+        input, weight, bias, self.stride, self.padding, self.dilation, self.groups
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+KeyboardInterrupt
+Exception ignored in atexit callback <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x0000014CBA00C2C0>:
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1612, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\popen_spawn_win32.py", line 114, in wait
+    res = _winapi.WaitForSingleObject(int(self._handle), msecs)
+KeyboardInterrupt:
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude4.py
+__name__: __main__
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:227: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  warnings.warn(
+loss: 5.620, acc: 6.947, lr: 0.000186: 100%|█████████████████████████████████████████| 625/625 [03:19<00:00,  3.13it/s]
+Start Evaluation
+Val Acc: 71.29: 100%|████████████████████████████████████████████████████████████████| 209/209 [00:38<00:00,  5.41it/s]
+Validation accuracy: 0.2384
+./checkpoints4\epoch-efficientnet_b3-1-acc-23.84.pth saved successfully...
+Epoch 2/25
+loss: 3.786, acc: 45.880, lr: 0.000454: 100%|████████████████████████████████████████| 625/625 [02:33<00:00,  4.07it/s]
+Start Evaluation
+Val Acc: 162.38: 100%|███████████████████████████████████████████████████████████████| 209/209 [00:23<00:00,  8.92it/s]
+Validation accuracy: 0.5430
+./checkpoints4\epoch-efficientnet_b3-2-acc-54.30.pth saved successfully...
+Epoch 3/25
+loss: 3.596, acc: 62.575, lr: 0.000500:  71%|████████████████████████████▌           | 446/625 [01:52<00:45,  3.98it/s]
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\claude4.py", line 518, in <module>
+    trainer.train()
+    ~~~~~~~~~~~~~^^
+  File "D:\Projects\AI\Street\claude4.py", line 335, in train
+    train_acc = self.train_epoch(epoch)
+  File "D:\Projects\AI\Street\claude4.py", line 377, in train_epoch
+    self.scaler.step(self.optimizer)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\amp\grad_scaler.py", line 451, in step
+    self.unscale_(optimizer)
+    ~~~~~~~~~~~~~^^^^^^^^^^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\amp\grad_scaler.py", line 335, in unscale_
+    inv_scale = self._scale.double().reciprocal().float()
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+KeyboardInterrupt
+Exception ignored in atexit callback <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x0000020011BEC2C0>:
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1612, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\popen_spawn_win32.py", line 114, in wait
+    res = _winapi.WaitForSingleObject(int(self._handle), msecs)
+KeyboardInterrupt:
+(.venv) (base) PS D:\Projects\AI\Street>

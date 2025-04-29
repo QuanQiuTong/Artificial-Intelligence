@@ -1,0 +1,11 @@
+(base) PS D:\Projects\AI\Street> python .\baseline.py > field/.log
+D:\Projects\AI\Street\.venv\Lib\site-packages\torchvision\models\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+D:\Projects\AI\Street\.venv\Lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet50_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet50_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+loss: 0.004, acc: 40.875: 100%|███████████████████████████████████████████████████████████████████████████████| 468/468 [02:01<00:00,  3.86it/s]
+Val Acc: 59.55: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 157/157 [00:44<00:00,  3.55it/s] 
+loss: 0.004, acc: 61.348: 100%|███████████████████████████████████████████████████████████████████████████████| 468/468 [01:29<00:00,  5.22it/s]
+Val Acc: 55.24: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 157/157 [00:10<00:00, 15.37it/s] 
+Val Acc: 55.24: 100%|█████████████████████████████████████████████████████████████████████████████████████████| 157/157 [00:10<00:00, 15.20it/s] 
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 625/625 [01:05<00:00,  9.58it/s]

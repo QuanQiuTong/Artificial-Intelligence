@@ -1,0 +1,117 @@
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude5.py
+__name__: __main__
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]D:\Projects\AI\Street\.venv\Lib\site-packages\torch\optim\lr_scheduler.py:227: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+  warnings.warn(
+loss: 7.183, acc: 0.600, lr: 0.000028:  20%|████████▏                                | 125/625 [01:00<04:02,  2.06it/s]
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\claude5.py", line 514, in <module>
+    trainer.train()
+    ~~~~~~~~~~~~~^^
+  File "D:\Projects\AI\Street\claude5.py", line 332, in train
+    train_acc = self.train_epoch(epoch)
+  File "D:\Projects\AI\Street\claude5.py", line 372, in train_epoch
+    self.scaler.scale(loss).backward()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\_tensor.py", line 626, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\autograd\__init__.py", line 347, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\autograd\graph.py", line 823, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+KeyboardInterrupt
+Exception ignored in atexit callback <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x000001E8C84CC2C0>:
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1612, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\popen_spawn_win32.py", line 114, in wait
+    res = _winapi.WaitForSingleObject(int(self._handle), msecs)
+KeyboardInterrupt:
+(.venv) (base) PS D:\Projects\AI\Street> pip install torch>=1.12.0  # 建议使用1.12及以上版本
+Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple
+Requirement already satisfied: torch>=1.12.0 in d:\projects\ai\street\.venv\lib\site-packages (2.6.0+cu126)
+Requirement already satisfied: filelock in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (3.18.0)
+Requirement already satisfied: typing-extensions>=4.10.0 in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (4.13.2)
+Requirement already satisfied: networkx in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (3.4.2)
+Requirement already satisfied: jinja2 in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (3.1.6)
+Requirement already satisfied: fsspec in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (2025.3.2)
+Requirement already satisfied: setuptools in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (78.1.0)
+Requirement already satisfied: sympy==1.13.1 in d:\projects\ai\street\.venv\lib\site-packages (from torch>=1.12.0) (1.13.1)
+Requirement already satisfied: mpmath<1.4,>=1.1.0 in d:\projects\ai\street\.venv\lib\site-packages (from sympy==1.13.1->torch>=1.12.0) (1.3.0)
+Requirement already satisfied: MarkupSafe>=2.0 in d:\projects\ai\street\.venv\lib\site-packages (from jinja2->torch>=1.12.0) (3.0.2)
+(.venv) (base) PS D:\Projects\AI\Street> python .\claude5.py
+__name__: __main__
+Epoch 1/25
+  0%|                                                                                          | 0/625 [00:00<?, ?it/s]Initial lr: 1.9999999999999998e-05
+After first step lr: 2.0000485732170087e-05
+loss: 4.987, acc: 7.263, lr: 0.000186: 100%|█████████████████████████████████████████| 625/625 [02:21<00:00,  4.41it/s]
+Start Evaluation
+Val Acc: 75.42: 100%|████████████████████████████████████████████████████████████████| 209/209 [00:30<00:00,  6.78it/s]
+Validation accuracy: 0.2522
+./checkpoints5\epoch-efficientnet_b3-1-acc-25.22.pth saved successfully...
+Epoch 2/25
+loss: 4.619, acc: 33.470, lr: 0.000259:  24%|█████████▋                              | 152/625 [00:33<01:43,  4.57it/s]
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\claude5.py", line 520, in <module>
+    trainer.train()
+    ~~~~~~~~~~~~~^^
+  File "D:\Projects\AI\Street\claude5.py", line 332, in train
+    train_acc = self.train_epoch(epoch)
+  File "D:\Projects\AI\Street\claude5.py", line 378, in train_epoch
+    self.scaler.scale(loss).backward()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\_tensor.py", line 626, in backward
+    torch.autograd.backward(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        self, gradient, retain_graph, create_graph, inputs=inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\autograd\__init__.py", line 347, in backward
+    _engine_run_backward(
+    ~~~~~~~~~~~~~~~~~~~~^
+        tensors,
+        ^^^^^^^^
+    ...<5 lines>...
+        accumulate_grad=True,
+        ^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\autograd\graph.py", line 823, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        t_outputs, *args, **kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # Calls into the C++ engine to run the backward pass
+    ^
+KeyboardInterrupt
+Exception ignored in atexit callback <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x00000287804BC2C0>:
+Traceback (most recent call last):
+  File "D:\Projects\AI\Street\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1612, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 149, in join
+    res = self._popen.wait(timeout)
+  File "C:\Users\fqt15\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\popen_spawn_win32.py", line 114, in wait
+    res = _winapi.WaitForSingleObject(int(self._handle), msecs)
+KeyboardInterrupt:
+(.venv) (base) PS D:\Projects\AI\Street>
