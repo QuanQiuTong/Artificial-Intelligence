@@ -1,0 +1,1817 @@
+QuanQiuTong: 这是一份人工智能的课程项目，详细说明参见附件的txt。
+我想问，如果我不改进而直接使用提供的代码，大体流程是怎样？
+是qwen_ft下载一个预训练模型，然后根据train.json来fine-tune它，然后调用infer.py来使用fine-tune后的模型生成test.json的答案吗？
+
+Workspace: 正在收集工作区信息是的，您的理解完全正确。如果直接使用提供的代码，整个流程如下：
+
+1. **模型下载与微调（通过 qwen_ft.py）**:
+   - 脚本会使用 `snapshot_download` 从 ModelScope 下载 Qwen2.5-0.5B-Instruct 预训练模型
+   - 加载 [train.json](d:\Projects\AI\Math_Solver\train.json) 中的训练数据
+   - 使用 LoRA 技术（低秩适应）对模型进行参数高效微调
+   - 微调后的检查点会保存在 Qwen 目录下（如 checkpoint-3750 等）
+
+2. **预测与结果生成（通过 infer.py）**:
+   - 加载 [test.json](d:\Projects\AI\Math_Solver\test.json) 中的测试数据
+   - 加载之前微调过的模型（从 checkpoint-3750）
+   - 对每个测试样例生成结果，格式为直接输出数字答案
+   - 将结果按照要求的格式保存为 `submit.csv` 文件
+
+从您的工作区结构来看，已经有现成的微调模型检查点（在Qwen目录）和下载好的模型（在Qwen2___5-0___5B-Instruct目录），所以您可能不需要重新训练，直接运行 [infer.py](d:\Projects\AI\Math_Solver\infer.py) 即可生成结果。
+
+如果您想完整重复流程，只需按顺序执行：
+```bash
+python qwen_ft.py  # 训练模型
+python infer.py    # 生成测试结果
+```
+
+然后将生成的 submit.csv 提交到比赛平台。
+
+QuanQiuTong: 好的。但是目前生成的csv得分很低。得分就是回答这些数学问题的正确率。
+我想要改进，怎么操作？
+我在考虑以下技术方案，请帮我介绍一下。
+方案2：数据构建
+• 当前的答案过于简单，没有解题的步骤，即思维链（COT）
+可利用更高级的大模型，将训练集的答案步骤补充出来：直接去问，把正确答案的步骤和错误答
+案的步骤分开来；把答案给大模型，让他补充出步骤；或者其他好的方法
+• 当下数据存在不足的问题：可基于现有数据进行扩充，比如更改原题中的数字，合成新的数据
+• 利用具有步骤的正确答案数据进行SFT
+• 从含步骤的答案中提取出数字答案可使用正则表达式提取，或要求模型按照格式输出以及额外引
+入一个提取答案的模型
+
+GitHub Copilot: # 数据构建方案的实现步骤
+
+基于您提到的"数据构建"方案，我为您设计一个具体的实施计划：
+
+## 1. 为训练数据添加思维链(CoT)
+
+首先我们需要创建含有详细解题步骤的训练数据：
+
+```python
+import json
+import os
+from tqdm import tqdm
+import openai  # 可以使用OpenAI API或其他大模型API
+
+# 配置您的API密钥
+openai.api_key = "your-api-key"  # 或使用其他模型API
+
+def get_cot_explanation(question, answer):
+    """使用更高级的模型生成解题步骤"""
+    prompt = f"""请为以下小学数学题提供详细的解题步骤，确保最终答案为{answer}:
+问题: {question}
+逐步分析这道题，清晰展示每个计算步骤，最后给出答案。
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # 或其他高级模型
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
+
+# 加载原始训练数据
+with open("train.json", 'r', encoding='utf-8') as f:
+    train_data = json.load(f)
+
+# 为每个问题生成CoT
+enhanced_data = []
+for item in tqdm(train_data):
+    question = item["question"]
+    answer = item["answer"]
+    
+    # 获取CoT解释
+    cot_explanation = get_cot_explanation(question, answer)
+    
+    # 构建新的数据项
+    enhanced_item = {
+        "id": item["id"],
+        "instruction": "请解答以下小学数学应用题，需要提供详细的解题步骤和推理过程，最后给出正确答案。",
+        "question": question,
+        "answer": f"{cot_explanation}\n\n答案是: {answer}"
+    }
+    enhanced_data.append(enhanced_item)
+
+# 保存增强数据
+with open("train_with_cot.json", 'w', encoding='utf-8') as f:
+    json.dump(enhanced_data, f, ensure_ascii=False, indent=2)
+```
+
+## 2. 数据扩充
+
+通过修改原题中的数字来生成更多训练样本：
+
+```python
+import json
+import random
+import re
+from tqdm import tqdm
+import openai
+
+def modify_numbers(question):
+    """修改问题中的数字"""
+    numbers = re.findall(r'\d+', question)
+    modified_question = question
+    
+    for num in numbers:
+        # 随机变化数字，保持数量级
+        original = int(num)
+        if original < 10:
+            new_num = random.randint(1, 9)
+        elif original < 100:
+            new_num = random.randint(10, 99)
+        else:
+            new_num = random.randint(100, 999)
+        
+        modified_question = modified_question.replace(str(original), str(new_num), 1)
+    
+    return modified_question
+
+def solve_with_model(question):
+    """使用大模型解答变形后的问题"""
+    prompt = f"""请解答以下小学数学应用题，仅返回最终的数字答案，不需要任何解释:
+问题: {question}
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    answer_text = response.choices[0].message.content
+    # 提取数字答案
+    numbers = re.findall(r'\d+', answer_text)
+    if numbers:
+        return numbers[0]
+    return answer_text
+
+# 加载原始训练数据
+with open("train_with_cot.json", 'r', encoding='utf-8') as f:
+    enhanced_data = json.load(f)
+
+# 通过变形生成更多样本
+augmented_data = enhanced_data.copy()
+for item in tqdm(enhanced_data):
+    # 为每个原问题生成2个变体
+    for i in range(2):
+        modified_question = modify_numbers(item["question"])
+        new_answer = solve_with_model(modified_question)
+        
+        # 获取新问题的CoT
+        cot_explanation = get_cot_explanation(modified_question, new_answer)
+        
+        # 构建新数据项
+        new_item = {
+            "id": f"{item['id']}_aug{i}",
+            "instruction": item["instruction"],
+            "question": modified_question,
+            "answer": f"{cot_explanation}\n\n答案是: {new_answer}"
+        }
+        augmented_data.append(new_item)
+
+# 保存扩充数据
+with open("train_augmented.json", 'w', encoding='utf-8') as f:
+    json.dump(augmented_data, f, ensure_ascii=False, indent=2)
+```
+
+## 3. 修改训练代码使用增强数据
+
+更新`qwen_ft.py`文件以使用增强后的数据：
+
+```python
+# ...现有代码...
+
+# 替换以下行
+train_json_new_path = "train_augmented.json"
+
+# ...其余训练代码保持不变...
+```
+
+## 4. 修改推理代码提取正确答案
+
+更新`infer.py`以正确提取最终答案：
+
+```python
+# ...现有代码...
+
+def extract_final_answer(response):
+    """从模型回答中提取最终数字答案"""
+    # 尝试匹配"答案是: 数字"格式
+    match = re.search(r'答案是[：:]\s*(\d+)', response)
+    if match:
+        return match.group(1)
+    
+    # 提取所有数字，返回最后一个
+    numbers = re.findall(r'\d+', response)
+    if numbers:
+        return numbers[-1]
+    
+    # 如果找不到数字，返回原始响应
+    return response
+
+# 在生成预测结果的部分修改为
+response = predict(messages, model, tokenizer)
+final_answer = extract_final_answer(response)
+file.write(f"{id},{final_answer}\n")
+```
+
+## 执行流程
+
+1. 运行 `enhance_data_with_cot.py` 生成带有思维链的数据
+2. 运行 `augment_data.py` 进一步扩充数据集
+3. 使用 `qwen_ft_enhanced.py` 训练模型
+4. 用 `infer_enhanced.py` 生成预测结果
+
+这套方案的优势在于：
+- 通过CoT使模型学习推理过程而非简单记忆
+- 数据扩充提高模型泛化能力
+- 最终答案提取机制确保输出格式符合要求
+
+需要注意的是，OpenAI API需要付费使用，您也可以考虑使用其他开源或免费的大模型API替代。
+
+QuanQiuTong: 也就是说，我们需向train.json添加新的字段，即思维链；用这样增强后的train.json来微调qwen可以获得更好的表现。是这样吗？
+
+train.json的格式如下
+
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "315",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": "1",
+    "question": "某校男生人数的2/3等于女生人数的4/5，已知男生有150人，女生有多少人？",
+    "answer": "125",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": "2",
+    "question": "田径场上，爸爸跑一圈用4分钟，妈妈跑一圈用6分钟，小红跑一圈用8分钟。爸爸和妈妈同时从起点出发，他们几分钟后可以在起点第一次相遇?",
+    "answer": "12",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },（省略）
+
+GitHub Copilot: 是的，您的理解完全正确。我们需要对train.json数据进行思维链(CoT)增强，然后用这些增强后的数据微调Qwen模型，这样可以明显提高模型在数学问题上的表现。
+
+具体来说，我们需要做以下修改：
+
+1. **修改instruction**：从"无需进行分析，请直接输出数字答案"改为指导模型提供详细解题步骤
+
+2. **扩展answer字段**：包含完整的解题过程，而不仅仅是数字
+
+3. **保持最终答案格式**：确保解题过程的最后有明确的答案标识
+
+修改后的数据格式应该像这样：
+
+```json
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "我们需要计算运来青菜的重量。\n已知：萝卜有105千克，青菜是萝卜的3倍。\n解题步骤：\n1. 计算青菜的重量：105 × 3 = 315千克\n\n答案是：315",
+    "instruction": "请解答以下小学数学应用题，需要提供详细的解题步骤和推理过程，最后给出正确答案。"
+  },
+  {
+    "id": "1",
+    "question": "某校男生人数的2/3等于女生人数的4/5，已知男生有150人，女生有多少人？", 
+    "answer": "我们需要求出女生的人数。\n已知：男生有150人，男生人数的2/3等于女生人数的4/5\n解题步骤：\n1. 男生人数的2/3：150 × 2/3 = 100人\n2. 这100人等于女生人数的4/5\n3. 所以女生人数为：100 ÷ 4/5 = 100 × 5/4 = 125人\n\n答案是：125",
+    "instruction": "请解答以下小学数学应用题，需要提供详细的解题步骤和推理过程，最后给出正确答案。"
+  }
+]
+```
+
+这种思维链增强的方法会使模型学习到解题的推理过程，而不是简单地记忆问题和答案的对应关系，从而在面对新问题时能够更好地应用解题策略，提高正确率。
+
+在使用这种方式微调模型后，我们还需要修改推理代码，从生成的详细解答中准确提取最终的数字答案。
+
+QuanQiuTong: train.json中，instruction需要改动吗？
+你思考一下：提交的csv很纯净，只含有最终答案的数字且没有单位，而不可以有解题步骤。
+test,json的要求也是“无需进行分析，请直接输出数字答案，不带单位”。
+
+
+[
+  {
+    "id": 0,
+    "question": "91.64与7.36的和乘43.6与3.6的差，积是多少？",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": 1,
+    "question": "书架上有两层书，共164本，如果从下层取出9本放到上层去，两层数的本书就相同，原来下层比上层多多少本书？",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": 2,
+    "question": "两个老师带着30名同学在公园里划船，每条船最多坐3人，至少需多少条船？",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+
+GitHub Copilot: 您提出了非常重要的问题！我需要修正我之前的建议。
+
+您完全正确，我们需要确保最终提交的结果确实只包含数字答案。考虑到这点，我们有两种可行的方案：
+
+## 方案A：保持原始instruction并使用"隐式CoT"
+
+1. **保持原始instruction不变**：继续使用"无需进行分析，请直接输出数字答案，不带单位"
+2. **修改answer格式**：将answer改为包含推理过程，但确保推理过程的最后有明确的简单数字答案
+3. **模型会学习隐式推理**：虽然指令要求简单输出，但通过观察训练数据中的推理过程，模型会学习如何推理
+
+```json
+{
+  "id": "0",
+  "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+  "answer": "315",
+  "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。",
+  "_internal_reasoning": "运来的萝卜是105千克，青菜是萝卜的3倍，所以青菜重量是105×3=315千克"
+}
+```
+
+这里我们添加一个额外的`_internal_reasoning`字段用于训练，但在实际训练时将其与原有字段结合使用。
+
+## 方案B：两阶段推理（更推荐）
+
+1. **训练阶段**：
+   - 将instruction改为要求详细推理："请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+   - 将answer改为包含推理过程和最终答案："计算步骤... 答案：315"
+
+2. **推理阶段**：
+   - 添加后处理步骤，从生成的详细解答中只提取数字答案部分
+
+实现代码：
+
+```python
+import json
+import re
+import openai
+from tqdm import tqdm
+
+# 配置API
+openai.api_key = "your-api-key"
+
+def get_cot_explanation(question, answer):
+    prompt = f"""为以下小学数学题提供详细的解题步骤，确保最终答案为{answer}:
+问题: {question}
+分析每一步计算过程，最后给出答案格式为"答案：{answer}"。
+"""
+    # 调用API获取解释...
+    # 这里需要根据您使用的API调整
+    response = "..." # 这里是模拟API返回的解释
+
+    return response
+
+# 加载原始数据
+with open("train.json", 'r', encoding='utf-8') as f:
+    train_data = json.load(f)
+
+# 增强数据
+enhanced_data = []
+for item in tqdm(train_data):
+    cot = get_cot_explanation(item["question"], item["answer"])
+    
+    enhanced_item = {
+        "id": item["id"],
+        "question": item["question"],
+        "answer": f"{cot}\n答案：{item['answer']}",
+        "instruction": "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+    }
+    enhanced_data.append(enhanced_item)
+
+# 保存增强数据
+with open("train_with_cot.json", 'w', encoding='utf-8') as f:
+    json.dump(enhanced_data, f, ensure_ascii=False, indent=2)
+```
+
+然后修改推理代码提取答案：
+
+```python
+# 在infer.py中添加提取函数
+def extract_final_answer(response):
+    # 尝试匹配"答案：数字"格式
+    match = re.search(r'答案[:：]\s*(\d+)', response)
+    if match:
+        return match.group(1)
+    
+    # 如果没有找到特定格式，则返回响应中的所有数字中的最后一个
+    numbers = re.findall(r'\d+', response)
+    if numbers:
+        return numbers[-1]
+    
+    # 如果没有找到数字，返回原始响应
+    return response.strip()
+
+# 在生成结果部分使用
+response = predict(messages, model, tokenizer)
+final_answer = extract_final_answer(response)
+file.write(f"{id},{final_answer}\n")
+```
+
+方案B更可能提高模型性能，因为它显式地教导模型如何推理，同时我们通过后处理确保最终提交的结果仅包含所需的数字答案。
+
+QuanQiuTong: 好的，我明白你方案B的意思了。就是说：
+1. 我们调用高级LLM（如GPT）来生成思维过程，添加到现有的train.json中
+2. 我们要求我们自己微调的这个小模型（Qwen 0.5B）输出结果时带有思维链
+3. 规定Qwen输出答案时候的格式，然后把答案从中提取出来，这样也能得到纯净的，只含有数字的答案，以符合提交要求。
+
+我的理解正确吗？
+
+GitHub Copilot: # 完全正确！
+
+您的理解非常准确。方案B的核心思路就是：
+
+1. **使用高级LLM生成数据增强**：调用更强大的模型（如GPT-4）为训练集中的每个问题生成详细的思维链过程，添加到现有答案中
+
+2. **微调小模型学习思维过程**：通过这种增强数据微调Qwen 0.5B，教会它不仅要输出答案，还要学会推理过程
+
+3. **格式化输出和后处理**：
+   - 在训练时规定一个特定格式（如"答案：数字"）
+   - 在推理阶段使用正则表达式提取出最终数字答案
+
+这种方法的优势在于：
+- 模型学习了如何思考（而不仅仅是记忆答案）
+- 提高了解决新问题的泛化能力
+- 仍然能保证最终输出符合比赛要求的纯数字格式
+
+这是解决数学问题的有效策略，因为数学推理需要逐步分析和计算，使用思维链可以显著提高模型在这类任务上的表现。
+
+QuanQiuTong: 很好！那我们现在就实施这个方案吧！
+关于高级LLM，GPT-4o-mini足够解决这些小学数学题吗？考虑到它比较便宜，我打算使用它。
+另外，我在使用deerapi，它的使用样例如下。
+
+```
+
+# 这是一个 DeerAPI 调用 API 的 Python 例子
+import requests
+import json
+
+# ------------------------------------------------------------------------------------
+#         3秒步接入 DeerAPI ：  修改 Key 和 Base url (https://api.deerapi.com)
+# ------------------------------------------------------------------------------------
+url = "https://api.deerapi.com/v1/chat/completions"   # 这里不要用 openai base url，需要改成DEERAPI的中转 https://api.deerapi.com ，下面是已经改好的。
+
+payload = json.dumps({
+   "model": "gpt-4o-mini",  # 这里是你需要访问的模型，改成上面你需要测试的模型名称就可以了。
+   "messages": [
+      {
+         "role": "system",
+         "content": "You are a helpful assistant."
+      },
+      {
+         "role": "user",
+         "content": "周树人和鲁迅是兄弟吗？"
+      }
+   ]
+})
+headers = {
+   'Accept': 'application/json',
+   'Authorization': 'sk-***********************************************', # 这里放你的 DEERapi key
+   'User-Agent': 'DeerAPI/1.0.0 (https://api.deerapi.com)',  # 这里也改成 DeerAPI 的中转URL https://www.deerapi.com，已经改好
+   'Content-Type': 'application/json'
+}
+
+response = requests.request("POST", url, headers=headers, data=payload)
+print(response.text)
+```
+请你帮我完成增强train.json的代码。
+
+
+GitHub Copilot: # 使用DeerAPI实现数据增强脚本
+
+下面是一个完整的脚本，使用GPT-4o-mini通过DeerAPI来为train.json添加思维链：
+
+```python
+import json
+import requests
+import time
+import re
+from tqdm import tqdm
+import os
+
+# DeerAPI配置
+API_KEY = "你的DeerAPI密钥"  # 替换为你的实际密钥
+API_URL = "https://api.deerapi.com/v1/chat/completions"
+
+def get_cot_explanation(question, answer):
+    """
+    使用GPT-4o-mini生成解题步骤
+    """
+    headers = {
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {API_KEY}',
+        'User-Agent': 'DeerAPI/1.0.0 (https://api.deerapi.com)',
+        'Content-Type': 'application/json'
+    }
+    
+    prompt = f"""请详细分析并解答以下小学数学题，要给出清晰的计算步骤:
+
+问题: {question}
+
+你需要:
+1. 解析问题中的已知条件
+2. 分析每一步计算过程
+3. 确保最终答案为: {answer}
+4. 最后使用"答案：{answer}"格式给出答案
+
+请确保计算步骤清晰且正确。"""
+
+    payload = json.dumps({
+        "model": "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个擅长小学数学的助手，请提供清晰的解题思路和步骤。"
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    })
+    
+    # 添加重试机制
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(API_URL, headers=headers, data=payload)
+            response.raise_for_status()
+            result = response.json()
+            explanation = result['choices'][0]['message']['content']
+            return explanation
+        except Exception as e:
+            print(f"尝试 {attempt+1}/{max_retries} 失败: {str(e)}")
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # 指数退避
+                print(f"等待 {wait_time} 秒后重试...")
+                time.sleep(wait_time)
+            else:
+                print("所有尝试均失败，返回简单答案")
+                return f"经过计算，答案：{answer}"
+
+def main():
+    # 加载原始数据
+    train_file_path = "train.json"
+    output_file_path = "train_with_cot.json"
+    
+    print(f"读取原始训练数据: {train_file_path}")
+    with open(train_file_path, 'r', encoding='utf-8') as f:
+        train_data = json.load(f)
+    
+    # 创建输出目录(如果需要)
+    output_dir = os.path.dirname(output_file_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # 增强数据
+    enhanced_data = []
+    total = len(train_data)
+    print(f"开始处理 {total} 条数据...")
+    
+    for i, item in enumerate(tqdm(train_data)):
+        question = item["question"]
+        answer = item["answer"]
+        
+        # 生成解题步骤
+        cot_explanation = get_cot_explanation(question, answer)
+        
+        # 构建增强数据项
+        enhanced_item = {
+            "id": item["id"],
+            "question": question,
+            "answer": cot_explanation,
+            "instruction": "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+        }
+        enhanced_data.append(enhanced_item)
+        
+        # 每100个样本保存一次进度(以防程序中断)
+        if (i + 1) % 100 == 0:
+            temp_path = f"{output_file_path}.temp"
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                json.dump(enhanced_data, f, ensure_ascii=False, indent=2)
+            print(f"已处理 {i+1}/{total} 条数据，临时保存到 {temp_path}")
+    
+    # 保存最终结果
+    with open(output_file_path, 'w', encoding='utf-8') as f:
+        json.dump(enhanced_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"数据增强完成！结果保存到: {output_file_path}")
+    print(f"增强前数据条数: {len(train_data)}, 增强后数据条数: {len(enhanced_data)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 然后需要修改微调脚本
+
+以下是修改后的微调脚本，使用增强后的数据:
+
+```python
+import json
+import torch
+from modelscope import snapshot_download, AutoTokenizer
+from swanlab.integration.huggingface import SwanLabCallback
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
+import swanlab
+
+            
+def process_func(example):
+    """
+    将数据集进行预处理
+    """
+    MAX_LENGTH = 512  # 增加长度以容纳思维链
+    input_ids, attention_mask, labels = [], [], []
+    instruction = tokenizer(
+        f"<|im_start|>system\n{example['instruction']}<|im_end|>\n<|im_start|>user\n{example['question']}<|im_end|>\n<|im_start|>assistant\n",
+        add_special_tokens=False,
+    )
+    response = tokenizer(f"{example['answer']}", add_special_tokens=False)
+    input_ids = instruction["input_ids"] + response["input_ids"] + [tokenizer.pad_token_id]
+    attention_mask = (
+        instruction["attention_mask"] + response["attention_mask"] + [1]
+    )
+    labels = [-100] * len(instruction["input_ids"]) + response["input_ids"] + [tokenizer.pad_token_id]
+    if len(input_ids) > MAX_LENGTH:
+        input_ids = input_ids[:MAX_LENGTH]
+        attention_mask = attention_mask[:MAX_LENGTH]
+        labels = labels[:MAX_LENGTH]
+    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}   
+
+model_dir = snapshot_download("Qwen/Qwen2.5-0.5B-Instruct", cache_dir="./", revision="master")
+
+# Transformers加载模型权重
+tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16)
+model.enable_input_require_grads()  # 开启梯度检查点时，要执行该方法
+
+# 使用增强后的训练数据
+train_json_new_path = "train_with_cot.json"
+
+with open(train_json_new_path, 'r', encoding='utf-8') as file:
+    train_data = json.load(file)
+train_dataset = []
+for d in train_data:
+    train_dataset.append(process_func(d))
+
+config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    inference_mode=False,  # 训练模式
+    r=8,  # Lora 秩
+    lora_alpha=32,  # Lora alaph，具体作用参见 Lora 原理
+    lora_dropout=0.1,  # Dropout 比例
+)
+
+model = get_peft_model(model, config)
+
+args = TrainingArguments(
+    output_dir="./output/Qwen_CoT",  # 修改输出目录以区分
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    logging_steps=10,
+    num_train_epochs=5,
+    save_steps=1000,
+    learning_rate=1e-4,
+    save_on_each_node=True,
+    gradient_checkpointing=True,
+    report_to="none",
+)
+
+swanlab_callback = SwanLabCallback(
+    project="Qwen2.5-0.5B-fintune-CoT",  # 修改项目名称
+    experiment_name="Qwen/Qwen2.5-0.5B-Instruct-CoT",
+    config={
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "dataset": "math_cot",
+    }
+)
+
+trainer = Trainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True),
+    callbacks=[swanlab_callback],
+)
+
+trainer.train()
+
+swanlab.finish()
+```
+
+## 最后是修改后的推理脚本
+
+这个脚本用于从模型输出中提取数字答案:
+
+```python
+import json
+import torch
+import re
+from tqdm import tqdm
+from modelscope import AutoTokenizer
+from transformers import AutoModelForCausalLM
+from peft import PeftModel
+
+def extract_final_answer(response):
+    """从带有推理步骤的回答中提取最终数字答案"""
+    # 尝试匹配"答案：数字"格式
+    match = re.search(r'答案[:：]\s*(\d+)', response)
+    if match:
+        return match.group(1)
+    
+    # 如果没有找到特定格式，尝试匹配最后出现的数字
+    numbers = re.findall(r'\d+', response)
+    if numbers:
+        return numbers[-1]
+    
+    # 如果没有找到任何数字，返回原始响应
+    return response.strip()
+
+def predict(messages, model, tokenizer):
+    device = "cuda"
+    text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True
+    )
+    model_inputs = tokenizer([text], return_tensors="pt").to(device)
+
+    generated_ids = model.generate(
+        model_inputs.input_ids,
+        max_new_tokens=512
+    )
+    generated_ids = [
+        output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    ]
+    
+    response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+     
+    return response
+
+test_json_new_path = "test.json"
+
+with open(test_json_new_path, 'r', encoding='utf-8') as file:
+    test_data = json.load(file)
+
+model_dir = "./Qwen/Qwen2___5-0___5B-Instruct"
+
+tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16)
+model = PeftModel.from_pretrained(model, model_id="./output/Qwen_CoT/checkpoint-3750/")  # 调整路径
+
+with open("submit_cot.csv", 'w', encoding='utf-8') as file:
+    file.write("id,ret\n")  # 添加列头
+    for idx, row in tqdm(enumerate(test_data)):
+        instruction = "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+        input_value = row['question']
+        id = row['id']
+        
+        messages = [
+            {"role": "system", "content": f"{instruction}"},
+            {"role": "user", "content": f"{input_value}"}
+        ]
+        response = predict(messages, model, tokenizer)
+        final_answer = extract_final_answer(response)
+        file.write(f"{id},{final_answer}\n")
+```
+
+## 执行流程
+
+1. 首先运行 `enhance_train_with_cot.py` 生成增强数据
+2. 然后运行 `qwen_ft_cot.py` 进行模型微调
+3. 最后运行 `infer_cot.py` 生成测试结果
+
+这套方案应该能显著提高模型在数学问题上的正确率。GPT-4o-mini对于小学数学题应该足够胜任，它的数学能力还是非常不错的，完全满足小学数学题的解题需求。
+
+找到具有 2 个许可证类型的类似代码
+
+QuanQiuTong: 考虑到train.json（格式如下）中有12000条题目，直接一次询问可能会非常缓慢。能不能并行询问之类，帮助加速？
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "315",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": "1",
+    "question": "某校男生人数的2/3等于女生人数的4/5，已知男生有150人，女生有多少人？",
+    "answer": "125",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  {
+    "id": "2",
+    "question": "田径场上，爸爸跑一圈用4分钟，妈妈跑一圈用6分钟，小红跑一圈用8分钟。爸爸和妈妈同时从起点出发，他们几分钟后可以在起点第一次相遇?",
+    "answer": "12",
+    "instruction": "这是小学数学1-6年级的校内题目，无需进行分析，请直接输出数字答案，不带单位。"
+  },
+  （以下省略）]
+
+GitHub Copilot: # 使用并行处理加速数据增强
+
+您提出了一个很好的优化点！处理12000条数据确实可能非常耗时。我们可以使用Python的`concurrent.futures`模块实现并行处理，显著加快处理速度。以下是一个并行版本的实现：
+
+```python
+import json
+import requests
+import time
+import re
+import os
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
+
+# DeerAPI配置
+API_KEY = "sk-LuHa4Yaohe2CMVymp1tDPQuklWH978jmDt4TFhWB6ZifeHVu"
+API_URL = "https://api.deerapi.com/v1/chat/completions"
+
+# 线程池大小 - 控制并发请求数
+MAX_WORKERS = 10
+# 每个批次的大小
+BATCH_SIZE = 100
+
+def get_cot_explanation(item):
+    """
+    使用GPT-4o-mini生成解题步骤
+    """
+    question = item["question"]
+    answer = item["answer"]
+    id = item["id"]
+    
+    headers = {
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {API_KEY}',
+        'User-Agent': 'DeerAPI/1.0.0 (https://api.deerapi.com)',
+        'Content-Type': 'application/json'
+    }
+    
+    prompt = f"""请详细分析并解答以下小学数学题，要给出清晰的计算步骤:
+
+问题: {question}
+
+你需要:
+1. 解析问题中的已知条件
+2. 分析每一步计算过程
+3. 确保最终答案为: {answer}
+4. 最后使用"答案：{answer}"格式给出答案
+
+请确保计算步骤清晰且正确。"""
+
+    payload = json.dumps({
+        "model": "gpt-4o-mini",
+        "messages": [
+            {
+                "role": "system",
+                "content": "你是一个擅长小学数学的助手，请提供清晰的解题思路和步骤。"
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    })
+    
+    # 添加重试机制
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(API_URL, headers=headers, data=payload)
+            response.raise_for_status()
+            result = response.json()
+            explanation = result['choices'][0]['message']['content']
+            
+            # 构建增强数据项
+            enhanced_item = {
+                "id": id,
+                "question": question,
+                "answer": explanation,
+                "instruction": "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+            }
+            return enhanced_item
+        except Exception as e:
+            print(f"ID {id} - 尝试 {attempt+1}/{max_retries} 失败: {str(e)}")
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # 指数退避
+                print(f"等待 {wait_time} 秒后重试...")
+                time.sleep(wait_time)
+            else:
+                print(f"ID {id} - 所有尝试均失败，返回简单答案")
+                return {
+                    "id": id,
+                    "question": question,
+                    "answer": f"经过计算，答案：{answer}",
+                    "instruction": "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+                }
+
+def process_batch(batch, output_path, batch_number):
+    """处理一批数据并保存结果"""
+    enhanced_batch = []
+    
+    # 使用线程池并行处理批次中的项目
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # 提交所有任务
+        future_to_item = {executor.submit(get_cot_explanation, item): item for item in batch}
+        
+        # 收集结果
+        for future in tqdm(concurrent.futures.as_completed(future_to_item), 
+                          total=len(future_to_item),
+                          desc=f"处理批次 {batch_number}"):
+            try:
+                enhanced_item = future.result()
+                enhanced_batch.append(enhanced_item)
+            except Exception as e:
+                print(f"处理项目时出错: {str(e)}")
+    
+    # 保存批次结果
+    batch_path = f"{output_path}.batch{batch_number}"
+    with open(batch_path, 'w', encoding='utf-8') as f:
+        json.dump(enhanced_batch, f, ensure_ascii=False, indent=2)
+    
+    print(f"批次 {batch_number} 处理完成，保存到 {batch_path}")
+    return enhanced_batch
+
+def main():
+    # 加载原始数据
+    train_file_path = "train.json"
+    output_file_path = "train_with_cot.json"
+    
+    # 检查是否有已处理的批次文件
+    batch_files = [f for f in os.listdir('.') if f.startswith(f"{output_file_path}.batch")]
+    processed_data = []
+    
+    if batch_files:
+        print(f"发现已处理的批次文件: {len(batch_files)} 个")
+        for batch_file in batch_files:
+            try:
+                with open(batch_file, 'r', encoding='utf-8') as f:
+                    batch_data = json.load(f)
+                    processed_data.extend(batch_data)
+                print(f"从 {batch_file} 加载了 {len(batch_data)} 条数据")
+            except Exception as e:
+                print(f"读取批次文件 {batch_file} 失败: {str(e)}")
+                
+        # 按ID排序已处理数据
+        processed_ids = set(item["id"] for item in processed_data)
+        print(f"已处理 {len(processed_ids)} 条数据")
+    else:
+        processed_ids = set()
+        
+    print(f"读取原始训练数据: {train_file_path}")
+    with open(train_file_path, 'r', encoding='utf-8') as f:
+        train_data = json.load(f)
+    
+    # 筛选未处理的数据
+    unprocessed_data = [item for item in train_data if item["id"] not in processed_ids]
+    print(f"剩余 {len(unprocessed_data)} 条数据待处理")
+    
+    # 分批处理
+    batches = [unprocessed_data[i:i+BATCH_SIZE] for i in range(0, len(unprocessed_data), BATCH_SIZE)]
+    
+    # 处理每个批次
+    for i, batch in enumerate(batches):
+        batch_number = i + 1
+        batch_result = process_batch(batch, output_file_path, batch_number)
+        processed_data.extend(batch_result)
+        
+        # 每5个批次保存一次完整结果
+        if batch_number % 5 == 0 or batch_number == len(batches):
+            with open(output_file_path, 'w', encoding='utf-8') as f:
+                json.dump(processed_data, f, ensure_ascii=False, indent=2)
+            print(f"已处理 {batch_number}/{len(batches)} 批次，保存完整结果到 {output_file_path}")
+    
+    # 保存最终结果
+    if processed_data:
+        with open(output_file_path, 'w', encoding='utf-8') as f:
+            json.dump(processed_data, f, ensure_ascii=False, indent=2)
+        
+        print(f"数据增强完成！结果保存到: {output_file_path}")
+        print(f"增强前数据条数: {len(train_data)}, 增强后数据条数: {len(processed_data)}")
+    else:
+        print("没有处理任何数据")
+
+if __name__ == "__main__":
+    main()
+```
+
+## 优化说明
+
+1. **并行处理**：
+   - 使用`ThreadPoolExecutor`创建线程池进行并发API调用
+   - 可以配置`MAX_WORKERS`控制同时进行的请求数量
+
+2. **分批处理**：
+   - 将12000条数据分成多个批次（每批次100条）
+   - 每个批次单独处理并保存，避免全部数据丢失的风险
+
+3. **断点续传**：
+   - 程序会检查已存在的批次文件，从断点继续处理
+   - 如果程序中途停止，重新运行时可以继续处理未完成的数据
+
+4. **进度可视化**：
+   - 使用tqdm显示详细的处理进度
+   - 每个批次和总体进度都有显示
+
+5. **错误处理**：
+   - 每个请求都有重试机制，使用指数退避策略
+   - 即使部分请求失败，也能继续处理其他数据
+
+这种方法可以将处理时间显著缩短。例如，如果单个请求平均需要5秒，原来处理12000条数据需要约16.7小时，而使用10个并发线程可以将时间减少到约1.7小时。
+
+您可以根据API的速率限制调整`MAX_WORKERS`值，如果发现请求被频繁拒绝，可以适当降低并发数。
+
+QuanQiuTong: gpt-4.1-nano和gpt-4o-mini两者哪个更胜任？前者价格低，有点想用前者
+
+GitHub Copilot: # gpt-4.1-nano vs gpt-4o-mini 比较
+
+对于小学数学应用题生成思维链的任务，两个模型比较如下：
+
+## 能力比较
+- **gpt-4.1-nano**: 尽管是较新的经济型模型，对于简单的小学数学题应该完全足够。基础数学运算、逻辑推理和步骤说明都在其能力范围内。
+- **gpt-4o-mini**: 数学能力略强，处理复杂问题可能表现更好。
+
+## 价格考虑
+- **gpt-4.1-nano**: 价格显著更低，处理12000道题目时累积差价会很明显
+- **gpt-4o-mini**: 价格较高，但提升的能力可能在这个任务上并非必需
+
+## 建议
+**推荐使用 gpt-4.1-nano**，理由是：
+1. 小学数学题的难度级别不足以显著区分这两个模型的能力差异
+2. 任务规模大(12000题)，使用更经济的模型可以节省大量成本
+3. 即使个别题目表现不佳，也可以通过提示词优化或后期修正解决
+
+如要使用gpt-4.1-nano，只需在代码中将模型名称替换为：
+```python
+"model": "gpt-4.1-nano",
+```
+
+这个选择性价比更高，非常适合您的应用场景。
+
+QuanQiuTong: 我现在已经使用gpt-4o-mini处理了约14批次（1批次100问题），从中间中断，然后换用gpt-4.1-nano没关系吗?
+
+另外，是不是这两个模型都远远比这里的qwen0.5B强大？
+
+
+GitHub Copilot: # 中途更换模型完全没问题
+
+从您提供的代码来看，完全可以中途从gpt-4o-mini切换到gpt-4.1-nano继续处理，理由如下：
+
+1. **断点续传机制完善**：您的代码已经实现了检查已处理批次文件的功能，会自动跳过已处理的数据
+   
+2. **简单修改即可**：只需在代码中将模型名称从`"gpt-4o-mini"`改为`"gpt-4.1-nano"`：
+   ```python
+   payload = json.dumps({
+       "model": "gpt-4.1-nano",  # 改这一行即可
+       "messages": [...]
+   })
+   ```
+
+3. **风格一致性**：两个模型虽然会有些差异，但对于数学解题步骤的生成，这种差异不会影响最终的微调效果，反而可能增加数据的多样性
+
+## 关于模型能力对比
+
+是的，这两个模型都远远强于qwen0.5B：
+
+- **参数规模**：qwen0.5B只有5亿参数，而GPT-4系列模型虽然没有公开具体参数量，但估计在数十倍以上
+  
+- **通用能力**：即使是GPT-4的轻量版本，也拥有远超qwen0.5B的推理和计算能力
+  
+- **知识蒸馏原理**：您正在做的其实是一种"知识蒸馏"，用大模型生成高质量数据来训练小模型，这是提升小模型能力的有效方法
+
+继续使用gpt-4.1-nano是一个很好的选择，既能节省成本，又能保证生成的思维链质量足够高。
+
+QuanQiuTong: 从输出来看，保存文件的路径是不是不太对啊？貌似覆盖了一部分我前面已经做出来的批次。
+我已经把真正的batch9到batch16抢救了出来，待会是不是要重做batch1-8？
+还是说答案都已经保存到train_with_cot.json中了？
+不过无论如何，最终拿这个json检验一下看看哪些id重复或缺失就可以了对吧。
+(base) PS D:\Projects\AI\Math_Solver> python -u "d:\Projects\AI\Math_Solver\enhance\并行提问.py"
+发现已处理的批次文件: 16 个
+从 train_with_cot.json.batch1 加载了 100 条数据
+从 train_with_cot.json.batch10 加载了 100 条数据
+从 train_with_cot.json.batch11 加载了 100 条数据
+从 train_with_cot.json.batch12 加载了 100 条数据
+从 train_with_cot.json.batch13 加载了 100 条数据
+从 train_with_cot.json.batch14 加载了 100 条数据
+从 train_with_cot.json.batch15 加载了 100 条数据
+从 train_with_cot.json.batch16 加载了 100 条数据
+从 train_with_cot.json.batch2 加载了 100 条数据
+从 train_with_cot.json.batch3 加载了 100 条数据
+从 train_with_cot.json.batch4 加载了 100 条数据
+从 train_with_cot.json.batch5 加载了 100 条数据
+从 train_with_cot.json.batch6 加载了 100 条数据
+从 train_with_cot.json.batch7 加载了 100 条数据
+从 train_with_cot.json.batch8 加载了 100 条数据
+从 train_with_cot.json.batch9 加载了 100 条数据
+已处理 1600 条数据
+读取原始训练数据: train.json
+剩余 10399 条数据待处理
+处理批次 1: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:13<00:00,  7.66it/s]
+批次 1 处理完成，保存到 train_with_cot.json.batch1
+处理批次 2: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:14<00:00,  6.81it/s]
+批次 2 处理完成，保存到 train_with_cot.json.batch2
+处理批次 3: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:11<00:00,  8.81it/s]
+批次 3 处理完成，保存到 train_with_cot.json.batch3
+处理批次 4: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:10<00:00,  9.51it/s]
+批次 4 处理完成，保存到 train_with_cot.json.batch4
+处理批次 5: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 100/100 [00:12<00:00,  8.02it/s]
+批次 5 处理完成，保存到 train_with_cot.json.batch5
+已处理 5/104 批次，保存完整结果到 train_with_cot.json
+
+GitHub Copilot: # 数据保存分析与解决方案
+
+您的观察非常准确！出现了批次文件覆盖问题：
+
+## 当前情况分析
+
+1. **文件覆盖问题**：
+   - 新处理的batch1-8覆盖了之前已处理的同名文件
+   - 好在您已经保存了batch9-16的原始文件
+
+2. **数据状态**：
+   - train_with_cot.json应该包含了所有已处理的数据（1600条原始+新处理的500条）
+   - 这是因为程序在处理5个批次后将所有内存中的数据保存到了主文件
+
+## 推荐解决方案
+
+1. **验证当前json完整性**：
+   ```python
+   # filepath: d:\Projects\AI\Math_Solver\check_data.py
+   import json
+   
+   # 检查主文件
+   with open("train_with_cot.json", 'r', encoding='utf-8') as f:
+       data = json.load(f)
+   
+   # 统计ID
+   ids = [item["id"] for item in data]
+   unique_ids = set(ids)
+   
+   print(f"总条目数: {len(data)}")
+   print(f"唯一ID数: {len(unique_ids)}")
+   print(f"重复ID数: {len(data) - len(unique_ids)}")
+   
+   # 检查数据完整性
+   if len(data) >= 2100 and len(unique_ids) >= 1600:
+       print("数据看起来完整")
+   else:
+       print("数据可能有缺失")
+   ```
+
+2. **修改代码避免覆盖**：
+   ```python
+   # 在process_batch函数中修改批次文件名格式
+   batch_path = f"{output_path}.batch{batch_number}_{int(time.time())}"
+   ```
+
+3. **如果需要重做批次**：
+   - 如果`train_with_cot.json`包含的数据确实完整，不需要重做
+   - 如果有缺失，可以从唯一ID集合中找出缺失的ID，仅处理这些数据
+
+## 接下来建议
+
+1. **继续完成剩余批次**：修改代码使用时间戳避免文件覆盖
+2. **定期检查数据完整性**：每处理多个批次后验证一次ID的完整性
+3. **完成后进行全面检查**：确保所有12000条数据都已正确处理
+
+这样您就能高效完成所有数据的增强，不必重复处理已完成的部分。
+
+QuanQiuTong: 我在第7299个问题被回答之后，因为欠费而终止了程序。现在我更换了api key，如何从7300开始继续？
+
+GitHub Copilot: # 从第7300题继续处理
+
+您的脚本已经包含了处理中断和继续执行的逻辑，只需做一些小调整即可从第7300题继续：
+
+## 解决方案
+
+1. **创建一个验证和合并脚本**，确保已完成的7299题数据都正确保存：
+
+```python
+import json
+import os
+
+# 主要JSON文件
+main_file = "train_with_cot.json"
+# 批次文件目录(当前目录)
+batch_dir = "."
+
+# 1. 加载主文件(如果存在)
+processed_data = []
+if os.path.exists(main_file):
+    with open(main_file, 'r', encoding='utf-8') as f:
+        processed_data = json.load(f)
+    print(f"从主文件加载了 {len(processed_data)} 条数据")
+
+# 2. 加载所有批次文件
+batch_files = [f for f in os.listdir(batch_dir) if f.startswith("train_with_cot.json.batch")]
+print(f"找到 {len(batch_files)} 个批次文件")
+
+# 跟踪已处理的ID
+processed_ids = set()
+if processed_data:
+    processed_ids = set(item["id"] for item in processed_data)
+    print(f"主文件中的唯一ID数: {len(processed_ids)}")
+
+# 3. 检查和合并批次文件
+for batch_file in batch_files:
+    try:
+        with open(os.path.join(batch_dir, batch_file), 'r', encoding='utf-8') as f:
+            batch_data = json.load(f)
+        
+        # 只添加不重复的数据
+        new_items = [item for item in batch_data if item["id"] not in processed_ids]
+        if new_items:
+            processed_data.extend(new_items)
+            # 更新已处理ID集合
+            processed_ids.update(item["id"] for item in new_items)
+            print(f"从 {batch_file} 添加了 {len(new_items)} 条新数据")
+    except Exception as e:
+        print(f"读取批次文件 {batch_file} 失败: {str(e)}")
+
+# 4. 保存合并后的数据
+with open(main_file, 'w', encoding='utf-8') as f:
+    json.dump(processed_data, f, ensure_ascii=False, indent=2)
+
+print(f"合并完成! 总共处理了 {len(processed_data)} 条数据，包含 {len(processed_ids)} 个唯一ID")
+
+# 5. 验证最高ID
+if processed_data:
+    try:
+        max_id = max(int(item["id"]) for item in processed_data)
+        print(f"最高ID为: {max_id}，应该接近7299")
+    except:
+        print("无法确定最高ID")
+```
+
+2. **更新API密钥**，您已经在代码中完成了
+
+3. **修改批次命名以避免覆盖**，在您的`并行提问.py`文件中修改批次保存部分：
+
+```python
+# 修改process_batch函数中的批次文件命名方式，添加时间戳
+batch_path = f"{output_path}.batch{batch_number}_{int(time.time())}"
+```
+
+4. **启动脚本继续处理**，它会自动从第7300题开始：
+
+```bash
+python "d:\Projects\AI\Math_Solver\enhance\并行提问.py"
+```
+
+## 如果还有问题
+
+如果仍然不能从正确位置继续，您可以尝试：
+
+1. 先运行合并脚本确保数据无误
+2. 临时修改`MAX_WORKERS`降低并发请求数(20-30)，降低出错可能
+3. 确认所有批次文件都在脚本扫描的目录中
+
+您的代码已经设计得很好，能够处理中断和继续执行的情况，主要问题可能是批次文件命名覆盖导致的，添加时间戳后应该可以解决。
+
+QuanQiuTong: 我已经得到了完整的train_with_cot.json。
+"instruction"说"请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"；
+我在想，这会导致我要微调的这个qwen模型输出含有分析与解答，于是有可能出现“因此答案是”这种字眼，不利于下一步提取答案。可能可以设计一个更好的输出格式？
+```json
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "当然可以！下面是详细的解题思路和步骤：\n\n**1. 解析已知条件：**  \n- 食堂运来的萝卜重量：105千克  \n- 运来的青菜是萝卜的3倍  \n\n**2. 分析每一步计算过程：**  \n1. 已知萝卜的重量是105千克。  \n2. 青菜的重量是萝卜的3倍，所以可以用“萝卜的重量 × 3”来计算青菜的重量。  \n3. 计算：青菜重量 = 105千克 × 3  \n\n**3. 进行乘法计算：**  \n105 × 3 = (100 + 5) × 3  \n= 100 × 3 + 5 × 3  \n= 300 + 15  \n= 315\n\n**4. 确认答案**：青菜的重量是315千克。\n\n---\n\n**答案：315**",
+    "instruction": "请详细分析并解答以下问题，给出计算步骤，最后用'答案：数字'的格式给出答案"
+  },
+  （以下省略）
+]
+```
+
+GitHub Copilot: # 优化输出格式设计
+
+您提出了很有价值的问题！当前的格式确实可能导致模型生成包含文字性描述的答案，使得提取纯数字变得复杂。
+
+## 更好的格式方案
+
+我建议修改 instruction 为更明确的格式要求：
+
+```json
+"instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+```
+
+这样修改有几个优势：
+
+1. **保留思维链过程**：模型仍然会学习完整的解题推理过程
+2. **简化答案提取**：从输出中提取答案只需获取最后一行
+3. **避免歧义**：明确告知模型最后一行只能包含数字
+4. **更符合比赛要求**：最终只需提交纯数字
+
+## 实现方法
+
+1. **修改训练数据**：
+
+```python
+import json
+import re
+
+# 加载增强后的数据
+with open("train_with_cot.json", 'r', encoding='utf-8') as f:
+    enhanced_data = json.load(f)
+
+# 修改答案格式和instruction
+formatted_data = []
+for item in enhanced_data:
+    # 提取数字答案
+    answer_match = re.search(r'答案[:：]\s*(\d+)', item["answer"])
+    if answer_match:
+        number_answer = answer_match.group(1)
+        # 修改答案格式：保留原有解释，但最后一行只有数字
+        new_answer = item["answer"].replace(f"答案：{number_answer}", f"\n{number_answer}")
+        
+        formatted_item = {
+            "id": item["id"],
+            "question": item["question"],
+            "answer": new_answer,
+            "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+        }
+        formatted_data.append(formatted_item)
+
+# 保存修改后的数据
+with open("train_with_cot_formatted.json", 'w', encoding='utf-8') as f:
+    json.dump(formatted_data, f, ensure_ascii=False, indent=2)
+```
+
+2. **修改推理代码中的答案提取**：
+
+```python
+def extract_final_answer(response):
+    """提取模型输出的最后一行作为答案"""
+    # 按行分割
+    lines = [line.strip() for line in response.strip().split('\n')]
+    # 过滤空行
+    non_empty_lines = [line for line in lines if line]
+    
+    if non_empty_lines:
+        last_line = non_empty_lines[-1]
+        # 提取数字
+        numbers = re.findall(r'\d+', last_line)
+        if numbers:
+            return numbers[0]
+    
+    # 如果上述方法失败，尝试其他提取方式
+    numbers = re.findall(r'\d+', response)
+    if numbers:
+        return numbers[-1]
+    
+    return "0"  # 默认返回
+```
+
+这种方法在保留思维链优势的同时，让最终答案提取变得非常简单明确，模型也会学习以一个非常清晰的格式输出。
+
+QuanQiuTong: 这正则表达式不太对吧？我看到有分数（如“4/7"），小数点和百分号都没能正确识别。请你帮忙改正。
+ID: 10129 的答案不一致！
+原始答案: 756.8
+增强答案: 756
+ID: 10135 的答案不一致！
+原始答案: 8.8
+增强答案: 8
+ID: 10136 的答案不一致！
+原始答案: 3/10
+增强答案: 3
+ID: 10137 的答案不一致！
+原始答案: 16%
+增强答案: 16
+ID: 10138 的答案不一致！
+原始答案: 59.4
+增强答案: 59
+
+GitHub Copilot: # 修改正则表达式以匹配各种数值格式
+
+您的检测脚本确实需要改进正则表达式，当前版本只能识别整数。以下是修正后的代码：
+
+```python
+import json
+import re
+
+# 加载增强后的数据
+with open("train_with_cot.json", 'r', encoding='utf-8') as f:
+    enhanced_data = json.load(f)
+
+with open("train.json", 'r', encoding='utf-8') as f:
+    original_data = json.load(f)
+
+print(f"原始数据条目数: {len(original_data)}")
+print(f"增强数据条目数: {len(enhanced_data)}")
+
+# 检验增强后的数据对同id问题的回答是否与原始数据一致
+def check_enhanced_data(enhanced_data, original_data):
+    # 创建一个字典来存储原始数据的答案
+    original_answers = {item["id"]: item["answer"] for item in original_data}
+    
+    errors = 0
+    # 检查增强后的数据
+    for item in enhanced_data:
+        item_id = item["id"]
+        if item_id in original_answers:
+            # 修改后的正则表达式，支持整数、小数、分数和百分数
+            answer_match = re.search(r'答案[:：]\s*([-+]?\d*\.?\d+(?:/\d+)?%?)', item["answer"])
+            if answer_match:
+                number_answer = answer_match.group(1)
+                # 检查答案是否一致
+                if number_answer != original_answers[item_id]:
+                    print(f"ID: {item_id} 的答案不一致！")
+                    print(f"原始答案: {original_answers[item_id]}")
+                    print(f"增强答案: {number_answer}")
+                    errors += 1
+            else:
+                print(f"ID: {item_id} 的增强答案格式不正确！无法提取数字答案。")
+                print(f"原始答案: {original_answers[item_id]}")
+                print(f"增强答案内容: {item['answer'][-100:]}")  # 显示答案末尾部分
+                errors += 1
+        else:
+            print(f"ID: {item_id} 在原始数据中未找到！")
+            errors += 1
+    
+    print(f"检查完成! 发现 {errors} 个错误，准确率为 {(len(enhanced_data)-errors)/len(enhanced_data)*100:.2f}%")
+
+# 执行检查
+check_enhanced_data(enhanced_data, original_data)
+```
+
+## 正则表达式解释
+
+新的正则表达式 `r'答案[:：]\s*([-+]?\d*\.?\d+(?:/\d+)?%?)'` 可以匹配：
+
+1. **整数**：如 "756"
+2. **小数**：如 "756.8", "8.8" 
+3. **分数**：如 "3/10"
+4. **百分数**：如 "16%"
+5. **负数**：如 "-12.5"
+
+## 额外改进
+
+我还添加了：
+- 错误计数器
+- 显示无法提取答案时的内容片段
+- 最终准确率统计
+
+这些修改可以帮助您全面检查数据质量，对于无法正确提取答案的情况，您还可以查看具体的回答内容，便于进一步调试和修复。
+
+QuanQiuTong: 很好，我现在得到了增强的train数据集，格式如下。接下来我们是不是用这个数据集重新运行qwen_ft.py和infer.py就可以了？需要改一些地方吗？
+
+```json
+
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "thoughts": "当然可以！下面是详细的解题思路和步骤：\n\n**1. 解析已知条件：**  \n- 食堂运来的萝卜重量：105千克  \n- 运来的青菜是萝卜的3倍  \n\n**2. 分析每一步计算过程：**  \n1. 已知萝卜的重量是105千克。  \n2. 青菜的重量是萝卜的3倍，所以可以用“萝卜的重量 × 3”来计算青菜的重量。  \n3. 计算：青菜重量 = 105千克 × 3  \n\n**3. 进行乘法计算：**  \n105 × 3 = (100 + 5) × 3  \n= 100 × 3 + 5 × 3  \n= 300 + 15  \n= 315\n\n**4. 确认答案**：青菜的重量是315千克。\n\n---\n\n**答案：315**",
+    "answer": "315",
+    "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+  },
+  {
+    "id": "1",
+    "question": "某校男生人数的2/3等于女生人数的4/5，已知男生有150人，女生有多少人？",
+    "thoughts": "好的，我们来一步步分析并解答这个问题。\n\n**题目分析：**  \n已知条件：\n- 某校男生人数的 \\( \\frac{2}{3} \\) 等于女生人数的 \\( \\frac{4}{5} \\)。\n- 男生人数=150人。\n目标：求女生人数。\n\n---\n\n**第一步：设女生人数为 \\( x \\)。**  \n根据题意，男生人数的 \\( \\frac{2}{3} \\) 等于女生人数的 \\( \\frac{4}{5} \\)：  \n\\[\n\\frac{2}{3} \\times \\text{男生人数} = \\frac{4}{5} \\times \\text{女生人数}\n\\]\n\n**第二步：代入男生人数**：  \n\\[\n\\frac{2}{3} \\times 150 = \\frac{4}{5} \\times x\n\\]\n\n**第三步：计算左边**：  \n\\[\n\\frac{2}{3} \\times 150 = 2 \\times \\frac{150}{3} = 2 \\times 50 = 100\n\\]\n所以得到：  \n\\[\n100 = \\frac{4}{5} \\times x\n\\]\n\n**第四步：求 \\( x \\)**：  \n两边同时乘以 \\( \\frac{5}{4} \\) 来消除分数：  \n\\[\nx = 100 \\times \\frac{5}{4}\n\\]\n\n**第五步：计算**：  \n\\[\nx = 100 \\times \\frac{5}{4} = \\frac{100 \\times 5}{4} = \\frac{500}{4} = 125\n\\]\n\n---\n\n**总结：**  \n女生人数 = 125人。\n\n---\n\n**答案：125**",
+    "answer": "125",
+    "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+  },]
+  ```
+
+GitHub Copilot: # 使用增强数据集的修改方案
+
+是的，您需要对`qwen_ft.py`和`infer.py`进行一些修改，以适应新的增强数据格式和训练目标。以下是需要修改的部分：
+
+## 1. qwen_ft.py 的修改
+
+```python
+import json
+import torch
+from modelscope import snapshot_download, AutoTokenizer
+from swanlab.integration.huggingface import SwanLabCallback
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
+import swanlab
+
+            
+def process_func(example):
+    """
+    将数据集进行预处理
+    """
+    # 增加最大长度以容纳思维链
+    MAX_LENGTH = 1024 
+    input_ids, attention_mask, labels = [], [], []
+    
+    instruction = tokenizer(
+        f"<|im_start|>system\n{example['instruction']}<|im_end|>\n<|im_start|>user\n{example['question']}<|im_end|>\n<|im_start|>assistant\n",
+        add_special_tokens=False,
+    )
+    
+    # 使用thoughts字段作为模型输出目标，或直接拼接thoughts和answer
+    if 'thoughts' in example:
+        # 直接使用thoughts作为输出目标（其中已包含了答案）
+        response = tokenizer(f"{example['thoughts']}", add_special_tokens=False)
+    else:
+        # 兼容旧数据格式
+        response = tokenizer(f"{example['answer']}", add_special_tokens=False)
+    
+    input_ids = instruction["input_ids"] + response["input_ids"] + [tokenizer.pad_token_id]
+    attention_mask = (
+        instruction["attention_mask"] + response["attention_mask"] + [1]
+    )
+    labels = [-100] * len(instruction["input_ids"]) + response["input_ids"] + [tokenizer.pad_token_id]
+    
+    if len(input_ids) > MAX_LENGTH:
+        input_ids = input_ids[:MAX_LENGTH]
+        attention_mask = attention_mask[:MAX_LENGTH]
+        labels = labels[:MAX_LENGTH]
+    
+    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}   
+
+model_dir = snapshot_download("Qwen/Qwen2.5-0.5B-Instruct", cache_dir="./", revision="master")
+
+# Transformers加载模型权重
+tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16)
+model.enable_input_require_grads()  # 开启梯度检查点时，要执行该方法
+
+# 修改为增强数据集的路径
+train_json_new_path = "train_with_cot.json"  # 或者您保存增强数据的文件名
+
+with open(train_json_new_path, 'r', encoding='utf-8') as file:
+    train_data = json.load(file)
+train_dataset = []
+for d in train_data:
+    train_dataset.append(process_func(d))
+
+config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    inference_mode=False,  # 训练模式
+    r=8,  # Lora 秩
+    lora_alpha=32,  # Lora alaph，具体作用参见 Lora 原理
+    lora_dropout=0.1,  # Dropout 比例
+)
+
+model = get_peft_model(model, config)
+
+args = TrainingArguments(
+    output_dir="./output/Qwen_CoT",  # 修改输出目录以区分
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
+    logging_steps=10,
+    num_train_epochs=5,
+    save_steps=1000,
+    learning_rate=1e-4,
+    save_on_each_node=True,
+    gradient_checkpointing=True,
+    report_to="none",
+)
+
+swanlab_callback = SwanLabCallback(
+    project="Qwen2.5-0.5B-fintune-CoT",  # 修改项目名称
+    experiment_name="Qwen/Qwen2.5-0.5B-Instruct-CoT",
+    config={
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "dataset": "math_cot",
+    }
+)
+
+trainer = Trainer(
+    model=model,
+    args=args,
+    train_dataset=train_dataset,
+    data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True),
+    callbacks=[swanlab_callback],
+)
+
+trainer.train()
+
+swanlab.finish()
+```
+
+## 2. infer.py 的修改
+
+```python
+import json
+import torch
+import re
+from tqdm import tqdm
+from modelscope import AutoTokenizer
+from transformers import AutoModelForCausalLM
+from peft import PeftModel
+
+def extract_final_answer(response):
+    """从模型生成的思维链中提取最终数字答案"""
+    # 按行分割文本
+    lines = [line.strip() for line in response.strip().split('\n')]
+    # 过滤空行
+    non_empty_lines = [line for line in lines if line]
+    
+    if non_empty_lines:
+        # 获取最后一行
+        last_line = non_empty_lines[-1]
+        # 提取数字
+        numbers = re.findall(r'[-+]?\d*\.?\d+(?:/\d+)?%?', last_line)
+        if numbers:
+            return numbers[0]
+    
+    # 如果从最后一行提取失败，尝试匹配整个响应中的"答案：数字"格式
+    match = re.search(r'答案[:：]\s*([-+]?\d*\.?\d+(?:/\d+)?%?)', response)
+    if match:
+        return match.group(1)
+    
+    # 如果仍然失败，尝试找出响应中的所有数字，返回最后一个
+    numbers = re.findall(r'[-+]?\d*\.?\d+(?:/\d+)?%?', response)
+    if numbers:
+        return numbers[-1]
+    
+    # 如果找不到任何数字，返回0（或其他默认值）
+    return "0"
+
+def predict(messages, model, tokenizer):
+    device = "cuda"
+    text = tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True
+    )
+    model_inputs = tokenizer([text], return_tensors="pt").to(device)
+
+    generated_ids = model.generate(
+        model_inputs.input_ids,
+        max_new_tokens=1024  # 增加最大生成长度以容纳思维链
+    )
+    generated_ids = [
+        output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+    ]
+    
+    response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
+     
+    return response
+
+test_json_new_path = "test.json"
+
+with open(test_json_new_path, 'r', encoding='utf-8') as file:
+    test_data = json.load(file)
+
+model_dir = "./Qwen/Qwen2___5-0___5B-Instruct"
+
+tokenizer = AutoTokenizer.from_pretrained(model_dir, use_fast=False, trust_remote_code=True)
+model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", torch_dtype=torch.bfloat16)
+# 修改模型路径指向CoT训练的checkpoint
+model = PeftModel.from_pretrained(model, model_id="./output/Qwen_CoT/checkpoint-3750/")
+
+with open("submit_cot.csv", 'w', encoding='utf-8') as file:
+    file.write("id,ret\n")  # 添加列头
+    for idx, row in tqdm(enumerate(test_data)):
+        # 使用新的instruction而不是test.json中的原始instruction
+        instruction = "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+        input_value = row['question']
+        id = row['id']
+        
+        messages = [
+            {"role": "system", "content": f"{instruction}"},
+            {"role": "user", "content": f"{input_value}"}
+        ]
+        response = predict(messages, model, tokenizer)
+        
+        # 从响应中提取数字答案
+        final_answer = extract_final_answer(response)
+        file.write(f"{id},{final_answer}\n")
+```
+
+## 主要修改点
+
+1. **增加序列长度**：
+   - 将`MAX_LENGTH`从384增加到1024，以容纳更长的思维链内容
+
+2. **使用思维链数据**：
+   - 在训练时使用`thoughts`字段作为模型输出目标
+   - 代码兼容新旧数据格式
+
+3. **提取最终答案**：
+   - 添加`extract_final_answer`函数从模型输出中提取数字
+   - 优先从最后一行提取，然后尝试"答案："格式，最后尝试取最后一个数字
+
+4. **使用新指令**：
+   - 在推理时使用与训练一致的新instruction
+   - 确保模型生成思维链并以单数字结尾
+
+完成这些修改后，您应该能够成功利用增强后的数据进行训练和推理，得到更准确的数学问题解答结果。
+
+找到具有 1 个许可证类型的类似代码
+
+QuanQiuTong: 你的意思是，我其实可以直接用与原来一致格式的json来训练，而不用增加thought字段？
+比如这样的格式就行吗：
+```json
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "当然可以！下面是详细的解题思路和步骤：\n\n**1. 解析已知条件：**  \n- 食堂运来的萝卜重量：105千克  \n- 运来的青菜是萝卜的3倍  \n\n**2. 分析每一步计算过程：**  \n1. 已知萝卜的重量是105千克。  \n2. 青菜的重量是萝卜的3倍，所以可以用“萝卜的重量 × 3”来计算青菜的重量。  \n3. 计算：青菜重量 = 105千克 × 3  \n\n**3. 进行乘法计算：**  \n105 × 3 = (100 + 5) × 3  \n= 100 × 3 + 5 × 3  \n= 300 + 15  \n= 315\n\n**4. 确认答案**：青菜的重量是315千克。\n\n---\n\n**答案：315**",
+    "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+  },
+  ```
+
+GitHub Copilot: # 是的，您可以直接使用原始格式
+
+您完全正确！您提供的格式是最简单有效的方案，不需要添加额外的thought字段。您只需要：
+
+1. **保持原有JSON结构**：维持id、question、answer和instruction字段
+2. **扩展answer内容**：将原来的数字答案替换为包含详细解题过程和答案的文本
+3. **修改instruction**：更新为新的指导语
+
+这种方式有几个优点：
+- 保持数据结构简洁
+- 与原始代码兼容性更好
+- 避免不必要的数据处理
+
+我刚才提供的代码已经兼容这种格式，会自动检测并使用answer字段：
+
+```python
+# 使用thoughts字段作为模型输出目标，或直接使用answer字段
+if 'thoughts' in example:
+    response = tokenizer(f"{example['thoughts']}", add_special_tokens=False)
+else:
+    # 兼容您现在的格式
+    response = tokenizer(f"{example['answer']}", add_special_tokens=False)
+```
+
+因此您可以直接使用示例中的格式，只需修改qwen_ft.py和infer.py中的相关部分（主要是修改输出提取方式和指令内容），按照我之前提供的修改建议即可。
+
+QuanQiuTong: 那么对于我现在这种数据格式，是不是可以直接投入qwen_ft.py来训练？还是说需要改点什么
+```json
+[
+  {
+    "id": "0",
+    "question": "食堂运来105千克的萝卜，运来的青菜是萝卜的3倍，运来青菜多少千克？",
+    "answer": "当然可以！下面是详细的解题思路和步骤：\n\n**1. 解析已知条件：**  \n- 食堂运来的萝卜重量：105千克  \n- 运来的青菜是萝卜的3倍  \n\n**2. 分析每一步计算过程：**  \n1. 已知萝卜的重量是105千克。  \n2. 青菜的重量是萝卜的3倍，所以可以用“萝卜的重量 × 3”来计算青菜的重量。  \n3. 计算：青菜重量 = 105千克 × 3  \n\n**3. 进行乘法计算：**  \n105 × 3 = (100 + 5) × 3  \n= 100 × 3 + 5 × 3  \n= 300 + 15  \n= 315\n\n**4. 确认答案**：青菜的重量是315千克。\n\n---\n\n**答案：315**\n315",
+    "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+  },
+  {
+    "id": "1",
+    "question": "某校男生人数的2/3等于女生人数的4/5，已知男生有150人，女生有多少人？",
+    "answer": "好的，我们来一步步分析并解答这个问题。\n\n**题目分析：**  \n已知条件：\n- 某校男生人数的 \\( \\frac{2}{3} \\) 等于女生人数的 \\( \\frac{4}{5} \\)。\n- 男生人数=150人。\n目标：求女生人数。\n\n---\n\n**第一步：设女生人数为 \\( x \\)。**  \n根据题意，男生人数的 \\( \\frac{2}{3} \\) 等于女生人数的 \\( \\frac{4}{5} \\)：  \n\\[\n\\frac{2}{3} \\times \\text{男生人数} = \\frac{4}{5} \\times \\text{女生人数}\n\\]\n\n**第二步：代入男生人数**：  \n\\[\n\\frac{2}{3} \\times 150 = \\frac{4}{5} \\times x\n\\]\n\n**第三步：计算左边**：  \n\\[\n\\frac{2}{3} \\times 150 = 2 \\times \\frac{150}{3} = 2 \\times 50 = 100\n\\]\n所以得到：  \n\\[\n100 = \\frac{4}{5} \\times x\n\\]\n\n**第四步：求 \\( x \\)**：  \n两边同时乘以 \\( \\frac{5}{4} \\) 来消除分数：  \n\\[\nx = 100 \\times \\frac{5}{4}\n\\]\n\n**第五步：计算**：  \n\\[\nx = 100 \\times \\frac{5}{4} = \\frac{100 \\times 5}{4} = \\frac{500}{4} = 125\n\\]\n\n---\n\n**总结：**  \n女生人数 = 125人。\n\n---\n\n**答案：125**\n125",
+    "instruction": "请解答以下数学题，先给出详细的解题步骤，然后在最后一行只写一个数字作为最终答案，不要包含任何其他文字、标点或单位。"
+  },]
+```
+
+GitHub Copilot: # 对数据格式和训练脚本的分析
+
+您提供的数据格式可以直接用于训练，但需要对`qwen_ft.py`做几处关键修改：
+
+## 必须修改的内容
+
+1. **增加序列最大长度**：
+   ```python
+   # 将此行修改为:
+   MAX_LENGTH = 1024  # 原来是384，太短无法容纳完整思维链
+   ```
+
+2. **修改训练数据路径**：
+   ```python
+   # 将此行修改为:
+   train_json_new_path = "train_with_cot.json"  # 指向您的增强数据文件
+   ```
+
+3. **修改输出目录**：
+   ```python
+   # 将此行修改为:
+   output_dir="./output/Qwen_CoT",  # 区分普通训练和CoT训练的输出
+   ```
+
+4. **修改项目名称**：
+   ```python
+   swanlab_callback = SwanLabCallback(
+       project="Qwen2.5-0.5B-fintune-CoT",  # 添加CoT标识
+       experiment_name="Qwen/Qwen2.5-0.5B-Instruct-CoT",
+       # ...
+   )
+   ```
+
+## 关于infer.py的修改
+
+您还需要修改`infer.py`来正确提取数字答案：
+
+```python
+import re
+
+# 添加答案提取函数
+def extract_final_answer(response):
+    """从模型生成的思维链中提取最终数字答案"""
+    # 按行分割取最后一行
+    lines = [line.strip() for line in response.strip().split('\n') if line.strip()]
+    if lines:
+        last_line = lines[-1]
+        # 提取数字（支持分数、小数、百分数等）
+        numbers = re.findall(r'[-+]?\d*\.?\d+(?:/\d+)?%?', last_line)
+        if numbers:
+            return numbers[0]
+    
+    # 备用提取方法
+    numbers = re.findall(r'[-+]?\d*\.?\d+(?:/\d+)?%?', response)
+    if numbers:
+        return numbers[-1]
+    return "0"  # 默认返回
+
+# 在infer.py生成响应后使用此函数
+response = predict(messages, model, tokenizer)
+final_answer = extract_final_answer(response)
+file.write(f"{id},{final_answer}\n")
+```
+
+## 训练流程
+
+1. 使用修改后的`qwen_ft.py`训练模型
+2. 使用修改后的`infer.py`生成预测结果
+
+您的数据格式设计很好，特别是在最后单独一行放纯数字答案，这样非常有利于模型学习正确格式并便于后续答案提取。
